@@ -22,6 +22,7 @@ const db = require('../models');
 const eventBus = require('./eventBus');
 
 // ============ QUEUE ============
+let _memoriesSinceConsolidation = 0; // tracks new memories → triggers KB rebuild at threshold
 
 // Map<agentId, Array<ExchangeEntry>>
 const queue = new Map();
@@ -244,6 +245,25 @@ async function processBatch(agentId, entries) {
             await graphService.processExtractedGraph(entities, allFactTexts, agentId);
         } catch (graphErr) {
             console.warn('⚠️ Batch: graph processing error:', graphErr.message);
+        }
+    }
+
+    // === Step 5: Auto-consolidate KB if enough new memories ===
+    if (added > 0) {
+        _memoriesSinceConsolidation += added;
+        const KB_CONSOLIDATION_THRESHOLD = 20;
+        if (_memoriesSinceConsolidation >= KB_CONSOLIDATION_THRESHOLD) {
+            _memoriesSinceConsolidation = 0;
+            // Run async — don't block the batch response
+            setImmediate(async () => {
+                try {
+                    const intelligenceService = require('./intelligenceService');
+                    console.log('📚 Auto-consolidating KB (threshold reached)...');
+                    await intelligenceService.consolidateKnowledge();
+                } catch (err) {
+                    console.warn('⚠️ Auto KB consolidation failed:', err.message);
+                }
+            });
         }
     }
 }

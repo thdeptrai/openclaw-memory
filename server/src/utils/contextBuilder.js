@@ -55,6 +55,15 @@ function buildContextFromMemories(memories, maxLength = 3000) {
         }
     }
 
+    // Knowledge base entries (consolidated facts — high priority)
+    if (memories.knowledgeBase && memories.knowledgeBase.length > 0) {
+        parts.push('=== 📚 What I Know About You ===');
+        for (const k of memories.knowledgeBase) {
+            parts.push(`- **${k.topic}**: ${k.content}`);
+        }
+        parts.push('');
+    }
+
     // Summaries (conversation history insight)
     if (memories.summaries && memories.summaries.length > 0) {
         parts.push('=== Conversation History ===');
@@ -72,15 +81,6 @@ function buildContextFromMemories(memories, maxLength = 3000) {
         parts.push('=== Knowledge from Other Agents ===');
         for (const m of memories.crossAgentMemories) {
             parts.push(`- [${m.agentName || m.agentId}] (${m.type}) ${m.content}`);
-        }
-        parts.push('');
-    }
-
-    // Knowledge base entries
-    if (memories.knowledgeBase && memories.knowledgeBase.length > 0) {
-        parts.push('=== Consolidated Knowledge ===');
-        for (const k of memories.knowledgeBase) {
-            parts.push(`- [${k.topic}] ${k.content} (confidence: ${((k.confidence || 0) * 100).toFixed(0)}%)`);
         }
         parts.push('');
     }

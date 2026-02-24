@@ -486,21 +486,48 @@ class MemoryService {
             }
         })() : Promise.resolve());
 
-        // Task C: Knowledge base entries
+        // Task C: Knowledge base entries — keyword relevance + text hybrid search
         parallelTasks.push((async () => {
             try {
-                const kbResults = await db.query(
-                    `SELECT * FROM knowledge_base
+                const kbEntries = new Map();
+
+                // C1: Keyword relevance scoring
+                const allKb = await db.query(
+                    `SELECT id, topic, content, confidence_score FROM knowledge_base ORDER BY confidence_score DESC`
+                );
+                const queryWords = enrichedQuery.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+                for (const k of allKb.rows) {
+                    const kText = (k.topic + ' ' + k.content).toLowerCase();
+                    const matchCount = queryWords.filter(w => kText.includes(w)).length;
+                    if (matchCount > 0) {
+                        const relevance = (matchCount / Math.max(queryWords.length, 1)) * (k.confidence_score || 0.5);
+                        kbEntries.set(k.id, {
+                            id: k.id, topic: k.topic, content: k.content,
+                            confidence: k.confidence_score, relevance,
+                        });
+                    }
+                }
+
+                // C2: Text ILIKE fallback
+                const kbTextResults = await db.query(
+                    `SELECT id, topic, content, confidence_score FROM knowledge_base
                      WHERE topic ILIKE $1 OR content ILIKE $1
                      ORDER BY confidence_score DESC LIMIT 5`,
                     [`%${query.substring(0, 100)}%`]
                 );
-                results.knowledgeBase = kbResults.rows.map(k => ({
-                    id: k.id,
-                    topic: k.topic,
-                    content: k.content,
-                    confidence: k.confidence_score,
-                }));
+                for (const k of kbTextResults.rows) {
+                    if (!kbEntries.has(k.id)) {
+                        kbEntries.set(k.id, {
+                            id: k.id, topic: k.topic, content: k.content,
+                            confidence: k.confidence_score, relevance: k.confidence_score * 0.5,
+                        });
+                    }
+                }
+
+                // Sort by relevance, take top 8
+                results.knowledgeBase = Array.from(kbEntries.values())
+                    .sort((a, b) => (b.relevance || 0) - (a.relevance || 0))
+                    .slice(0, 8);
             } catch { /* knowledge_base table may not exist */ }
         })());
 
