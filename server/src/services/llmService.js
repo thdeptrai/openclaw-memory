@@ -1,47 +1,9 @@
 /**
- * ============================================================
- *  Centralized LLM Service — Supports multiple providers
- *
- *  Providers:
- *    - ollama: Local Ollama instance (default)
- *    - minimax: MiniMax M2.5 via Anthropic-compatible API
+ *  Centralized LLM Service — MiniMax M2.5 via Anthropic-compatible API
  *
  *  All LLM calls across the system go through this service.
- * ============================================================
  */
 const runtimeConfig = require('../runtimeConfig');
-
-// ============ PROVIDER: OLLAMA ============
-
-async function callOllamaProvider(messages, options = {}) {
-    const model = options.model || runtimeConfig.get('ollama.chatModel') || 'qwen2.5:7b';
-    const url = `${runtimeConfig.get('ollama.baseUrl')}/api/chat`;
-    const timeout = options.timeout || 180000;
-
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model,
-            messages,
-            stream: false,
-            keep_alive: '10m',
-            options: {
-                temperature: options.temperature ?? 0.1,
-                num_predict: options.maxTokens || 2000,
-            },
-        }),
-        signal: AbortSignal.timeout(timeout),
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text().catch(() => 'unknown');
-        throw new Error(`Ollama HTTP ${response.status}: ${errorText.substring(0, 200)}`);
-    }
-
-    const data = await response.json();
-    return data.message?.content || '';
-}
 
 // ============ PROVIDER: MINIMAX M2.5 ============
 
@@ -140,15 +102,7 @@ async function chat(messages, options = {}) {
 
     let content;
     try {
-        switch (provider) {
-            case 'minimax':
-                content = await callMiniMaxProvider(messages, options);
-                break;
-            case 'ollama':
-            default:
-                content = await callOllamaProvider(messages, options);
-                break;
-        }
+        content = await callMiniMaxProvider(messages, options);
     } catch (err) {
         const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
         const isTimeout = err.name === 'TimeoutError' || err.message?.includes('aborted') || err.message?.includes('timeout');
@@ -174,8 +128,8 @@ async function chat(messages, options = {}) {
     }
 
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-    const model = options.model || runtimeConfig.get(provider === 'minimax' ? 'minimax.model' : 'ollama.chatModel') || provider;
-    console.log(`  ⏱️ LLM [${provider}] ${purpose} in ${elapsed}s (model: ${model})`);
+    const model = options.model || runtimeConfig.get('minimax.model') || 'MiniMax-M2.5';
+    console.log(`  ⏱️ LLM ${purpose} in ${elapsed}s (model: ${model})`);
 
     if (!content) {
         // Retry once for empty content (MiniMax sometimes returns empty on first try)

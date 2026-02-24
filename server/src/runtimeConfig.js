@@ -11,11 +11,8 @@ const config = require('./config');
 
 // Deep-clone the initial values from config.js
 const defaults = {
-    // LLM Provider
-    'llm.provider': process.env.LLM_PROVIDER || 'minimax',
 
-    // Ollama
-    'ollama.chatModel': config.ollama.chatModel,
+    // Ollama (embeddings only)
     'ollama.embedModel': config.ollama.embedModel,
     'ollama.baseUrl': config.ollama.baseUrl,
 
@@ -69,10 +66,8 @@ const store = { ...defaults };
 
 // Setting metadata for validation and UI
 const settingsMeta = {
-    'llm.provider': { label: 'LLM Provider', group: 'LLM Models', type: 'select', options: ['ollama', 'minimax'], description: 'Active LLM provider for all chat/extraction tasks' },
-    'ollama.chatModel': { label: 'Ollama Chat Model', group: 'LLM Models', type: 'string', description: 'Ollama model for chat/extraction tasks' },
-    'ollama.embedModel': { label: 'Embedding Model', group: 'LLM Models', type: 'string', description: 'Ollama model for generating embeddings' },
-    'ollama.baseUrl': { label: 'Ollama Base URL', group: 'LLM Models', type: 'string', description: 'Ollama API endpoint' },
+    'ollama.embedModel': { label: 'Embedding Model', group: 'Embeddings', type: 'string', description: 'Ollama model for generating embeddings' },
+    'ollama.baseUrl': { label: 'Ollama Base URL', group: 'Embeddings', type: 'string', description: 'Ollama API endpoint (used for embeddings)' },
     'minimax.apiKey': { label: 'MiniMax API Key', group: 'LLM Models', type: 'string', sensitive: true, description: 'MiniMax API key (x-api-key header)' },
     'minimax.model': { label: 'MiniMax Model', group: 'LLM Models', type: 'string', description: 'MiniMax model name (e.g. MiniMax-M2.5)' },
     'minimax.baseUrl': { label: 'MiniMax Base URL', group: 'LLM Models', type: 'string', description: 'MiniMax API endpoint' },
