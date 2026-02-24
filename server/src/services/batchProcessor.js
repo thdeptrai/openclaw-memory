@@ -248,25 +248,7 @@ async function processBatch(agentId, entries) {
         }
     }
 
-    // === Step 5: Mem0-style incremental KB consolidation ===
-    // Instead of waiting for a threshold, immediately consolidate new facts into KB
-    if (added > 0) {
-        const newFactsForKB = allFacts
-            .filter(f => (f.action || 'ADD').toUpperCase() === 'ADD')
-            .map(f => ({ content: f.text, type: f.type || 'fact' }));
 
-        if (newFactsForKB.length > 0) {
-            setImmediate(async () => {
-                try {
-                    const intelligenceService = require('./intelligenceService');
-                    console.log(`📚 Incremental KB update: ${newFactsForKB.length} new facts...`);
-                    await intelligenceService.consolidateNewFacts(newFactsForKB);
-                } catch (err) {
-                    console.warn('⚠️ Incremental KB consolidation failed:', err.message);
-                }
-            });
-        }
-    }
 }
 
 /**
@@ -401,19 +383,7 @@ async function processImmediately(entry) {
                 } catch (err) { console.warn('⚠️ Agent fact error:', err.message); }
             }
 
-            // Mem0-style: incremental KB consolidation for new facts
-            const allNewFacts = [
-                ...facts.map(f => ({ content: f, type: 'fact' })),
-                ...(agentFacts || []).map(f => ({ content: f, type: 'fact' })),
-            ];
-            if (allNewFacts.length > 0) {
-                setImmediate(async () => {
-                    try {
-                        const intelligenceService = require('./intelligenceService');
-                        await intelligenceService.consolidateNewFacts(allNewFacts);
-                    } catch (err) { console.warn('⚠️ KB consolidation failed:', err.message); }
-                });
-            }
+
         }
     } catch (err) {
         console.error('⚠️ Fact extraction pipeline error:', err.message);
