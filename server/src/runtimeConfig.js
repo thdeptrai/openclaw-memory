@@ -56,24 +56,16 @@ const defaults = {
     'minimax.maxInputTokens': 1600,  // ~2013 total - 400 output reserve
 };
 
-// Prompt defaults loaded lazily from factExtractor (avoids circular require)
-let _promptDefaults = null;
-function getPromptDefaults() {
-    if (!_promptDefaults) {
-        const { USER_FACT_SYSTEM_PROMPT, AGENT_FACT_SYSTEM_PROMPT, COMBINED_SYSTEM_PROMPT } = require('./services/factExtractor');
-        _promptDefaults = {
-            'prompt.userFactSystem': USER_FACT_SYSTEM_PROMPT,
-            'prompt.agentFactSystem': AGENT_FACT_SYSTEM_PROMPT,
-            'prompt.combinedSystem': COMBINED_SYSTEM_PROMPT,
-        };
-        // Merge into defaults and store
-        Object.assign(defaults, _promptDefaults);
-        for (const [k, v] of Object.entries(_promptDefaults)) {
-            if (store[k] === undefined) store[k] = v;
-        }
-    }
-    return _promptDefaults;
-}
+// Prompt defaults — loaded from separate file to avoid circular dependency with factExtractor
+const promptDefaults = require('./services/promptDefaults');
+const _promptDefaults = {
+    'prompt.userFactSystem': promptDefaults.USER_FACT_SYSTEM_PROMPT,
+    'prompt.agentFactSystem': promptDefaults.AGENT_FACT_SYSTEM_PROMPT,
+    'prompt.combinedSystem': promptDefaults.COMBINED_SYSTEM_PROMPT,
+};
+// Merge prompt defaults into defaults and store
+Object.assign(defaults, _promptDefaults);
+
 
 // Mutable runtime store
 const store = { ...defaults };
@@ -124,8 +116,6 @@ module.exports = {
      * @returns {*} current value
      */
     get(key) {
-        // Lazy-load prompt defaults on first prompt access
-        if (key.startsWith('prompt.') && !_promptDefaults) getPromptDefaults();
         return store[key] !== undefined ? store[key] : defaults[key];
     },
 
@@ -170,8 +160,6 @@ module.exports = {
      * Get all settings with their metadata and current values
      */
     getAll() {
-        // Ensure prompt defaults are loaded
-        getPromptDefaults();
         const result = {};
         for (const [key, meta] of Object.entries(settingsMeta)) {
             let value = store[key];
