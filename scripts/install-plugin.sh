@@ -8,7 +8,7 @@ set -e
 
 REPO="thdeptrai/openclaw-memory"
 BRANCH="master"
-INSTALL_DIR="$HOME/.openclaw/plugins/memolo"
+INSTALL_DIR="extensions/memolo"
 
 echo "🔑 Memolo Plugin Installer"
 echo "=========================="
