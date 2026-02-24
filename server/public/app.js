@@ -62,7 +62,7 @@ function showPage(page) {
     if (page === 'conversations') loadConversations();
     if (page === 'agents') loadAgentsFull();
     if (page === 'memories') loadMemoriesFull();
-    if (page === 'knowledge') loadKnowledge();
+
     if (page === 'settings') loadSettings();
 }
 
@@ -822,65 +822,7 @@ function applyMemoryFilters() {
     renderFilteredMemories('memories-full-list', filtered);
 }
 
-// ============ KNOWLEDGE ============
-
-async function loadKnowledge() {
-    try {
-        const res = await api('GET', '/api/intelligence/knowledge');
-        const container = document.getElementById('knowledge-list');
-        if (!res.success || !res.data.length) {
-            container.innerHTML = '<div class="empty-state"><span class="icon">📚</span> No knowledge entries yet.<br><small style="color:var(--text-muted)">Click "🔄 Run Consolidation" above to analyze stored memories and generate knowledge entries.</small></div>';
-            return;
-        }
-        container.innerHTML = res.data.map(k => {
-            const conf = (k.confidence_score || 0);
-            const confColor = conf >= 0.7 ? 'high' : conf >= 0.4 ? 'medium' : 'low';
-            return `
-      <div class="knowledge-item">
-        <div class="knowledge-header">
-          <span class="knowledge-topic-badge">${escHtml(k.topic)}</span>
-          <span class="knowledge-confidence score-text-${confColor}" title="Confidence: how reliable this knowledge is">Confidence: ${(conf * 100).toFixed(0)}%</span>
-          <span class="knowledge-updated">Updated: ${timeAgo(k.last_updated)}</span>
-        </div>
-        <div class="knowledge-content">${escHtml(k.content)}</div>
-        ${k.source_count ? `<div class="knowledge-sources">📋 Based on ${k.source_count} source memories</div>` : ''}
-      </div>
-    `;
-        }).join('');
-    } catch {
-        document.getElementById('knowledge-list').innerHTML =
-            '<div class="empty-state"><span class="icon">📚</span> Failed to load knowledge base</div>';
-    }
-}
-
-function searchKnowledge(query) {
-    const items = document.querySelectorAll('#knowledge-list .knowledge-item');
-    items.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        item.style.display = text.includes(query.toLowerCase()) ? '' : 'none';
-    });
-}
-
-async function runConsolidation() {
-    const btn = document.getElementById('btn-consolidate');
-    const originalText = btn.textContent;
-    btn.textContent = '⏳ Running...';
-    btn.disabled = true;
-    try {
-        const res = await api('POST', '/api/intelligence/run', { tasks: ['consolidate'] });
-        if (res.success) {
-            showToast('🧠', 'Consolidation Complete', 'Knowledge base updated successfully');
-            loadKnowledge(); // Refresh
-        } else {
-            showToast('❌', 'Consolidation Failed', res.error || 'Unknown error');
-        }
-    } catch (err) {
-        showToast('❌', 'Consolidation Error', err.message);
-    } finally {
-        btn.textContent = originalText;
-        btn.disabled = false;
-    }
-}
+// ============ KNOWLEDGE (removed — Mem0 style, facts in Qdrant are the KB) ============
 
 // ============ LOGS ============
 
@@ -1345,7 +1287,7 @@ function renderRecallResults(data, elapsed, query) {
         { key: 'semanticMemories', label: '🧠 Semantic Memories', icon: '🧠', description: 'Extracted facts via vector search' },
         { key: 'crossAgentMemories', label: '🔗 Cross-Agent Memories', icon: '🔗', description: 'Memories from other agents' },
         { key: 'summaries', label: '📝 Summaries', icon: '📝', description: 'Conversation summaries' },
-        { key: 'knowledgeBase', label: '📚 Knowledge Base', icon: '📚', description: 'Consolidated knowledge entries' },
+
     ];
 
     // Count total results
@@ -1420,17 +1362,6 @@ function renderRecallItem(item, sectionKey) {
     } else if (sectionKey === 'summaries') {
         const summary = item.summary || item.content || JSON.stringify(item);
         html += `<div class="recall-item-content recall-summary-text">${escapeHtml(summary)}</div>`;
-    } else if (sectionKey === 'knowledgeBase') {
-        const topic = item.topic || '';
-        const content = item.content || '';
-        const confidence = item.confidence !== undefined ? (item.confidence * 100).toFixed(0) : null;
-        html += `<div class="recall-knowledge-entry">`;
-        html += `<div class="recall-item-header">`;
-        if (topic) html += `<span class="recall-topic-tag">📚 ${escapeHtml(topic)}</span>`;
-        if (confidence !== null) html += `<span class="recall-importance">🎯${confidence}%</span>`;
-        html += `</div>`;
-        html += `<div class="recall-item-content">${escapeHtml(content)}</div>`;
-        html += `</div>`;
     } else {
         html += `<div class="recall-item-content">${escapeHtml(JSON.stringify(item, null, 2))}</div>`;
     }

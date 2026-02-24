@@ -45,9 +45,7 @@
           <span class="icon">💾</span> Memories
           <span class="badge" id="nav-memory-count">0</span>
         </div>
-        <div class="nav-item" data-page="knowledge" onclick="showPage('knowledge')">
-          <span class="icon">📚</span> Knowledge Base
-        </div>
+
         <div class="nav-item" data-page="logs" onclick="showPage('logs')">
           <span class="icon">📋</span> Live Logs
           <span class="badge" id="nav-log-count">•</span>
@@ -336,27 +334,6 @@
       </div>
 
 
-      <!-- ==================== KNOWLEDGE PAGE ==================== -->
-      <div id="page-knowledge" class="page">
-        <div class="page-header">
-          <h2>Knowledge Base</h2>
-          <p>Consolidated knowledge from all agents</p>
-        </div>
-        <div class="panel">
-          <div class="panel-header">
-            <h3>📚 Knowledge Entries</h3>
-            <div class="panel-actions">
-              <input class="search-input" id="knowledge-search" placeholder="Search knowledge..."
-                oninput="searchKnowledge(this.value)">
-              <button class="btn btn-primary" onclick="runConsolidation()" id="btn-consolidate">🔄 Run
-                Consolidation</button>
-            </div>
-          </div>
-          <div class="panel-body" id="knowledge-list" style="max-height: 600px;">
-            <div class="empty-state"><span class="icon">📚</span> Loading...</div>
-          </div>
-        </div>
-      </div>
 
       <!-- ==================== LOGS PAGE ==================== -->
       <div id="page-logs" class="page">

@@ -55,14 +55,7 @@ function buildContextFromMemories(memories, maxLength = 3000) {
         }
     }
 
-    // Knowledge base entries (consolidated facts — high priority)
-    if (memories.knowledgeBase && memories.knowledgeBase.length > 0) {
-        parts.push('=== 📚 What I Know About You ===');
-        for (const k of memories.knowledgeBase) {
-            parts.push(`- **${k.topic}**: ${k.content}`);
-        }
-        parts.push('');
-    }
+    // Mem0 style: no separate KB — facts in Qdrant are the knowledge base
 
     // Summaries (conversation history insight)
     if (memories.summaries && memories.summaries.length > 0) {
@@ -84,9 +77,6 @@ function buildContextFromMemories(memories, maxLength = 3000) {
         }
         parts.push('');
     }
-
-    // Note: Raw exchanges are no longer included in recall (Mem0 style)
-    // Context is built from: semantic facts + KB + summaries + cross-agent
 
     let context = parts.join('\n');
 
