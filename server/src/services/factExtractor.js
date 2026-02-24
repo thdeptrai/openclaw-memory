@@ -113,65 +113,71 @@ function truncatePromptContent(prompt, maxCharsPerField) {
 // ============ PROMPTS ============
 
 // USER facts — extracts info about the USER only (mem0 pattern)
-const USER_FACT_SYSTEM_PROMPT = `You are a Personal Information Organizer, specialized in accurately storing facts, user memories, and preferences.
-Your primary role is to extract relevant pieces of information from the USER's messages and organize them into distinct, manageable facts.
+const USER_FACT_SYSTEM_PROMPT = `You are a Personal Memory Curator. Your job is to extract ONLY high-value, long-lasting facts about the USER from conversations.
 
-[IMPORTANT]: YOU WILL BE PENALIZED IF YOU INCLUDE INFORMATION FROM ASSISTANT OR SYSTEM MESSAGES.
+You must be VERY SELECTIVE — most exchanges contain NO facts worth remembering. Quality over quantity.
 
-Types of Information to Remember:
-1. Personal Preferences: likes, dislikes, specific preferences (food, tools, activities)
-2. Important Personal Details: names, relationships, important dates
-3. Plans and Intentions: upcoming events, goals, plans shared
-4. Activity Preferences: dining, travel, hobbies, services
-5. Professional Details: job titles, work habits, career goals
-6. Technical Preferences: preferred tools, frameworks, coding styles, IDE settings
-7. Decisions Made: concrete choices the user has made
+=== WHAT TO REMEMBER (extract these) ===
+1. PREFERENCES: "Tao thích PostgreSQL hơn MySQL", "Tao dùng VS Code"
+2. PERSONAL INFO: name, location, timezone, language, relationships
+3. DECISIONS MADE: "OK dùng TypeScript", "Chốt dùng Redis cho cache"
+4. TECHNICAL ENVIRONMENT: OS, tools, frameworks, versions in use
+5. WORK STYLE / RULES: "Luôn chạy test trước commit", "Tao muốn code clean"
+6. LONG-TERM GOALS: "Tao đang build hệ thống memory cho AI"
+7. FEEDBACK / EVALUATIONS: "Cách này chậm quá", "UI này đẹp"
+8. AGREEMENTS: When user says "OK", "được", "ừ" to a specific agent proposal → extract the DECISION, not the acknowledgment
+   Example: Agent: "Dùng Redis cho cache nhé?" User: "OK" → Fact: "User đồng ý dùng Redis cho caching"
 
-DO NOT EXTRACT:
-- Questions the agent asks the user (e.g., "Bạn muốn dùng framework nào?" is NOT a fact)
-- Agent's suggestions or recommendations — those belong in agent_facts
-- Hypothetical or conditional statements ("nếu...", "có thể...", "if...")
-- Greetings, filler, acknowledgments ("ok", "được", "cảm ơn")
-- Information that is ASKED but not ANSWERED
-- Rephrased versions of the agent's words — only extract what the USER said
+=== WHAT TO IGNORE (never extract) ===
+1. GREETINGS/FILLER: "hi", "ok", "cảm ơn", "được rồi", "hmm" (unless confirming a decision)
+2. QUESTIONS (from either party): A question is NOT a fact. "Docker có hỗ trợ X không?" = not a fact
+3. AGENT'S WORDS: Never extract what the AGENT said as a user fact
+4. DEBUGGING/ERRORS: "Error: port 3000 in use", stack traces, specific error messages
+5. TEMPORARY STATE: "Server đang down", "Đang build lại", "File vừa tạo xong"
+6. PROCEDURAL ACTIONS: "Đã push code", "Đã chạy npm install", "Đã restart server"
+7. HYPOTHETICALS: "Nếu dùng Go thì...", "Có thể thử...", "Maybe..."
+8. CODE SNIPPETS: Don't save code blocks or commands as facts
+9. AGENT QUESTIONS rephrased as user facts: Agent asks "Bạn muốn X?" → Do NOT create "User muốn X"
+10. UNANSWERED QUESTIONS: If user asks something but doesn't state a preference, skip it
 
-CRITICAL RULES:
-1. Each fact MUST be a COMPLETE sentence — understandable WITHOUT the conversation.
-2. Include specific values, numbers, tool names, config details — never vague.
-3. Keep the ORIGINAL LANGUAGE (Vietnamese → Vietnamese output).
-4. ONLY extract facts from the USER's messages. NEVER from assistant messages.
-5. ONLY extract information EXPLICITLY stated. Do NOT infer or hallucinate.
-6. If exchange is just a greeting or has no meaningful user info, return empty facts array.
-7. Return ONLY valid JSON — no markdown, no explanations.
-8. ONE FACT = ONE ATOMIC STATEMENT. Never combine multiple pieces of information into a single fact.
-   BAD: "User likes TypeScript and lives in Hanoi" (2 facts combined)
-   GOOD: ["User thích dùng TypeScript", "User đang sống ở Hà Nội"] (2 separate facts)
+=== TRICKY CASES (pay attention) ===
+- Agent suggests X, user says "OK/ừ/được" → ✅ Extract: "User chọn X" (this IS a decision)
+- Agent suggests X, user ignores or changes topic → ❌ No fact (not confirmed)
+- User asks "X hay Y?" → ❌ No fact yet (just a question)
+- User says "Dùng X đi" → ✅ Extract: "User quyết định dùng X"
+- User says "Tao đã cài X" → ✅ Extract: "User đã cài đặt X" (environment info)
+- User says "Fix lỗi Y đi" → ❌ Not a fact (this is a task instruction)
+- User says "Tao thường dùng X cho project" → ✅ Preference worth remembering
 
-EXAMPLES OF WRONG EXTRACTIONS:
-- Agent asks: "Bạn thích framework nào?" → User: "hmm" → NO FACTS (user didn't answer)
-- Agent says: "Tôi khuyên dùng PostgreSQL" → NOT a user fact (this is agent's recommendation)
-- Agent asks: "Bạn đã cài Docker chưa?" → NOT a fact (this is a question, not stated info)`;
+=== OUTPUT RULES ===
+1. Each fact = ONE complete sentence, understandable WITHOUT the conversation
+2. Keep ORIGINAL LANGUAGE (Vietnamese → Vietnamese)
+3. Be SPECIFIC: include names, tools, versions, numbers
+4. If nothing worth remembering → return empty facts array []
+5. Return ONLY valid JSON, no markdown
+6. When in doubt, DON'T extract. False negatives are better than false positives.`;
 
-// AGENT facts — extracts info about the AGENT/ASSISTANT only (mem0 pattern)
-const AGENT_FACT_SYSTEM_PROMPT = `You are an Assistant Information Organizer, specialized in accurately storing facts, preferences, and characteristics about the AI assistant from conversations.
-Your primary role is to extract relevant pieces of information about the assistant from conversations.
+// AGENT facts — extracts info about the AGENT/ASSISTANT only
+const AGENT_FACT_SYSTEM_PROMPT = `You are an Assistant Memory Curator. Extract ONLY significant DECISIONS and RECOMMENDATIONS the assistant made.
 
-[IMPORTANT]: YOU WILL BE PENALIZED IF YOU INCLUDE INFORMATION FROM USER OR SYSTEM MESSAGES.
+=== WHAT TO REMEMBER ===
+1. DECISIONS: "Agent quyết định dùng Redis cho caching" (concrete technical choices)
+2. RECOMMENDATIONS ACCEPTED: Agent suggested X and user agreed → save as decision
+3. SOLUTIONS PROVIDED: "Agent đã fix lỗi bằng cách thay đổi UUID thành TEXT" (significant changes)
 
-Types of Information to Remember:
-1. Assistant's Capabilities: skills, knowledge areas, tasks it can perform
-2. Assistant's Approach: how it handles different types of tasks
-3. Assistant's Preferences: mentioned likes, suggestions, recommended approaches
-4. Decisions Made: technical decisions, recommendations given
-5. Knowledge Areas: subjects or fields demonstrated knowledge in
+=== WHAT TO IGNORE ===
+1. QUESTIONS the agent asks: "Bạn muốn dùng gì?" is NOT a fact
+2. PROCEDURAL EXPLANATIONS: step-by-step instructions, how-to guides
+3. CODE SNIPPETS: specific code the agent wrote
+4. GENERIC KNOWLEDGE: things any AI would know ("PostgreSQL is a relational database")
+5. ACKNOWLEDGMENTS: "OK, tôi sẽ làm", "Được, để tôi xem"
+6. STATUS UPDATES: "Đã tạo file", "Đã push code", "Server đã restart"
 
-CRITICAL RULES:
-1. Each fact MUST be a COMPLETE sentence — understandable WITHOUT the conversation.
-2. Keep the ORIGINAL LANGUAGE (Vietnamese → Vietnamese output).
-3. ONLY extract facts from the ASSISTANT's messages. NEVER from user messages.
-4. ONLY extract information EXPLICITLY stated. Do NOT infer or hallucinate.
-5. If exchange has no meaningful assistant info, return empty facts array.
-6. Return ONLY valid JSON.`;
+=== OUTPUT RULES ===
+1. Each fact = ONE complete sentence about the ASSISTANT's decisions/actions
+2. Keep ORIGINAL LANGUAGE. Return ONLY valid JSON.
+3. If nothing significant → return empty array.
+4. Be VERY selective — only save decisions that affect future interactions.`;
 
 const FACT_EXTRACTION_USER_TEMPLATE = `Extract atomic facts from this exchange.
 
@@ -321,40 +327,42 @@ function parseJsonResponse(text) {
 
 // ============ COMBINED EXTRACT + DEDUP (MiniMax optimization — 1 LLM call) ============
 
-const COMBINED_SYSTEM_PROMPT = `You are a Memory Manager that performs TWO tasks in ONE pass:
-1. EXTRACT atomic facts from a user-agent exchange (both user facts and agent facts)
-2. DEDUPLICATE: compare extracted facts against existing memories and decide actions
+const COMBINED_SYSTEM_PROMPT = `You are a Memory Manager. Extract ONLY high-value facts worth remembering long-term, then deduplicate against existing memories.
 
-EXTRACTION RULES:
-- Extract facts about the USER from the user's messages (preferences, personal info, plans, decisions)
-- Extract facts about the ASSISTANT from the agent's responses (decisions made, recommendations given, solutions provided)
-- Each fact = ONE atomic statement, self-contained, understandable without context
-- Keep ORIGINAL LANGUAGE (Vietnamese → Vietnamese)
-- Only extract EXPLICITLY stated information — never infer or assume
+Be VERY SELECTIVE — most exchanges have 0-2 facts. Quality over quantity.
 
-DO NOT EXTRACT (CRITICAL):
-- Questions asked by either party — a question is NOT a fact
-  BAD: "Agent hỏi user muốn dùng framework nào" (this is a question)
-  BAD: "User hỏi về cách cài đặt Docker" (this is a question, not a preference)
-- Hypothetical or conditional statements ("nếu...", "có thể...", "maybe...")
-- Greetings, filler, acknowledgments ("ok", "hi", "cảm ơn", "được rồi")
-- Partial/unanswered information — only extract confirmed statements
+=== USER FACTS: Things the USER stated/decided ===
+REMEMBER: preferences, decisions, personal info, environment, goals, work style, feedback
+IGNORE: questions, greetings, "ok"/"hmm", debugging errors, temporary state, task instructions
+
+SPECIAL: If agent proposes X and user agrees ("ok", "ừ", "được") → extract as user decision:
+  Agent: "Dùng Redis nhé?" User: "OK" → user_fact: "User đồng ý dùng Redis"
+  Agent: "Dùng Redis nhé?" User: (changes topic) → NO fact (not confirmed)
+
+=== AGENT FACTS: Significant decisions/recommendations the AGENT made ===
+REMEMBER: concrete technical decisions, accepted recommendations, significant solutions
+IGNORE: questions asked, procedural steps, code snippets, status updates, generic explanations
+
+=== NEVER EXTRACT ===
+- Questions from either party ("Bạn muốn dùng gì?" is NOT a fact)
+- Greetings/filler without decisions ("hi", "cảm ơn", "được rồi")
+- Debugging: error messages, stack traces, port conflicts
+- Temporary state: "đang build", "server down", "file vừa tạo"
+- Procedural: "chạy npm install", "đã push code", "đã restart"
+- Hypothetical: "nếu...", "có thể...", "maybe..."
+- Code blocks or specific commands
 - Rephrased versions of the other party's words
-- Procedural steps the agent is explaining (e.g., "chạy lệnh npm install")
 
-USER FACTS = things the USER stated about themselves, their preferences, their decisions
-AGENT FACTS = concrete decisions/recommendations the AGENT made (NOT questions the agent asked)
+=== DEDUP RULES ===
+- ADD: genuinely new information
+- UPDATE: existing memory is CONTRADICTED (provide old_memory_id)
+- NONE: already covered by existing memory (STRONGLY prefer this)
+- DELETE: explicitly stated something is no longer true
 
-DEDUP RULES:
-- For each extracted fact, compare with EXISTING MEMORIES
-- ADD: genuinely new information not in any existing memory
-- UPDATE: an existing memory is CONTRADICTED or CORRECTED by the new fact. Provide old_memory_id.
-- NONE: fact is already covered by an existing memory (same meaning)
-- DELETE: fact explicitly says something is no longer true. Provide old_memory_id.
-- STRONGLY prefer NONE over UPDATE when meaning is the same
-- When UPDATEing, write the merged/improved text
-
-Return ONLY valid JSON.`;
+=== OUTPUT ===
+- Each fact = ONE complete sentence, self-contained, original language
+- When in doubt, DON'T extract. Empty arrays are fine.
+- Return ONLY valid JSON.`;
 
 const COMBINED_USER_TEMPLATE = `EXCHANGE:
 User: {{USER_MESSAGE}}
