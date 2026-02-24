@@ -41,11 +41,6 @@ class Scheduler {
         this.schedule('Duplicate Detection', 2 * 60 * 60 * 1000, async () => {
             await intelligenceService.detectAndMergeDuplicates();
         });
-
-        // 4. Knowledge consolidation — every 12 hours
-        this.schedule('Knowledge Consolidation', 12 * 60 * 60 * 1000, async () => {
-            await intelligenceService.consolidateKnowledge();
-        });
     }
 
     /**
@@ -75,7 +70,6 @@ class Scheduler {
         console.log('🔄 Running all intelligence tasks...');
         await intelligenceService.applyDecay();
         await intelligenceService.detectAndMergeDuplicates();
-        await intelligenceService.consolidateKnowledge();
         console.log('✅ All intelligence tasks complete');
     }
 

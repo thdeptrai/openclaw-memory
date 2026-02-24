@@ -45,7 +45,7 @@ const defaults = {
     'scheduler.summarizationSweep': 2 * 60 * 1000,
     'scheduler.memoryDecay': 6 * 60 * 60 * 1000,
     'scheduler.duplicateDetection': 2 * 60 * 60 * 1000,
-    'scheduler.knowledgeConsolidation': 12 * 60 * 60 * 1000,
+
 
     // Batch Processing (reduces LLM API calls for cloud providers)
     'batch.enabled': true,
@@ -86,7 +86,7 @@ const settingsMeta = {
     'scheduler.summarizationSweep': { label: 'Summarization Sweep', group: 'Scheduler', type: 'number', min: 30000, max: 3600000, unit: 'ms', description: 'How often to check for missed summarizations' },
     'scheduler.memoryDecay': { label: 'Memory Decay', group: 'Scheduler', type: 'number', min: 60000, max: 86400000, unit: 'ms', description: 'How often to apply memory importance decay' },
     'scheduler.duplicateDetection': { label: 'Duplicate Detection', group: 'Scheduler', type: 'number', min: 60000, max: 86400000, unit: 'ms', description: 'How often to scan for and merge duplicate memories' },
-    'scheduler.knowledgeConsolidation': { label: 'Knowledge Consolidation', group: 'Scheduler', type: 'number', min: 60000, max: 86400000, unit: 'ms', description: 'How often to consolidate knowledge from memories' },
+
 
     'batch.enabled': { label: 'Batch Processing', group: 'Batch', type: 'boolean', description: 'Queue exchanges and process in batches to reduce LLM API calls (recommended for cloud providers like MiniMax)' },
     'batch.intervalMs': { label: 'Batch Interval', group: 'Batch', type: 'number', min: 1000, max: 60000, unit: 'ms', description: 'How often to flush the batch queue and send to LLM' },

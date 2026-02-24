@@ -12,16 +12,13 @@ router.post('/run', async (req, res) => {
     try {
         const results = {};
 
-        const { tasks = ['decay', 'dedup', 'consolidate'] } = req.body;
+        const { tasks = ['decay', 'dedup'] } = req.body;
 
         if (tasks.includes('decay')) {
             results.decayCount = await intelligenceService.applyDecay();
         }
         if (tasks.includes('dedup')) {
             results.mergedCount = await intelligenceService.detectAndMergeDuplicates();
-        }
-        if (tasks.includes('consolidate')) {
-            results.knowledgeEntries = await intelligenceService.consolidateKnowledge();
         }
 
         res.json({ success: true, data: results });
@@ -95,45 +92,6 @@ router.post('/permissions/team', async (req, res) => {
     }
 });
 
-/**
- * GET /api/intelligence/knowledge
- * Get knowledge base entries
- */
-router.get('/knowledge', async (req, res) => {
-    try {
-        const limit = parseInt(req.query.limit || '50');
-        const result = await db.query(
-            'SELECT * FROM knowledge_base ORDER BY confidence_score DESC, last_updated DESC LIMIT $1',
-            [limit]
-        );
-        res.json({ success: true, data: result.rows });
-    } catch (error) {
-        console.error('Knowledge base error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * GET /api/intelligence/knowledge/search
- * Search knowledge base
- */
-router.get('/knowledge/search', async (req, res) => {
-    try {
-        const { q } = req.query;
-        if (!q) return res.status(400).json({ error: 'Missing query parameter: q' });
-
-        const result = await db.query(
-            `SELECT * FROM knowledge_base
-       WHERE topic ILIKE $1 OR content ILIKE $1
-       ORDER BY confidence_score DESC LIMIT 20`,
-            [`%${q}%`]
-        );
-        res.json({ success: true, data: result.rows });
-    } catch (error) {
-        console.error('Knowledge search error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
 
 /**
  * GET /api/intelligence/stats
@@ -141,10 +99,9 @@ router.get('/knowledge/search', async (req, res) => {
  */
 router.get('/stats', async (req, res) => {
     try {
-        const [memories, merged, knowledge, agents, exchanges, conversations] = await Promise.all([
+        const [memories, merged, agents, exchanges, conversations] = await Promise.all([
             db.query('SELECT COUNT(*) as total, AVG(importance_score) as avg_importance FROM memories WHERE merged_into IS NULL'),
             db.query('SELECT COUNT(*) as total FROM memories WHERE merged_into IS NOT NULL'),
-            db.query('SELECT COUNT(*) as total FROM knowledge_base'),
             db.query('SELECT COUNT(*) as total FROM agents'),
             db.query('SELECT COUNT(*) as total FROM exchanges'),
             db.query('SELECT COUNT(*) as total FROM conversations'),
@@ -158,7 +115,6 @@ router.get('/stats', async (req, res) => {
                 totalConversations: parseInt(conversations.rows[0].total),
                 averageImportance: parseFloat(memories.rows[0].avg_importance || 0).toFixed(3),
                 mergedDuplicates: parseInt(merged.rows[0].total),
-                knowledgeEntries: parseInt(knowledge.rows[0].total),
                 registeredAgents: parseInt(agents.rows[0].total),
             },
         });

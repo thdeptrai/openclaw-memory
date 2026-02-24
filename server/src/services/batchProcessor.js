@@ -22,7 +22,8 @@ const db = require('../models');
 const eventBus = require('./eventBus');
 
 // ============ QUEUE ============
-let _memoriesSinceConsolidation = 0; // tracks new memories → triggers KB rebuild at threshold
+
+
 
 // Map<agentId, Array<ExchangeEntry>>
 const queue = new Map();
