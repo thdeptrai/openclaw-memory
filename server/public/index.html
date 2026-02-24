@@ -9,6 +9,10 @@
   <link rel="stylesheet" href="/style.css">
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+  <script>
+    // Apply theme before render to prevent FOUC
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('memolo-theme') || 'dark');
+  </script>
 </head>
 
 <body>
@@ -57,6 +61,11 @@
       </nav>
 
       <div class="sidebar-footer">
+        <div class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">
+          <span class="theme-toggle-icon" id="theme-icon">🌙</span>
+          <span class="theme-toggle-label" id="theme-label">Dark mode</span>
+        </div>
+        <div class="sidebar-footer-divider"></div>
         <div class="health-indicator">
           <span class="health-dot" id="health-dot"></span>
           <span id="health-text">Checking...</span>

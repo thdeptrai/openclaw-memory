@@ -3,6 +3,35 @@
    Real-time SSE updates, Conversations, Activity Feed, Toasts
    ============================================================ */
 
+// ============ THEME ============
+
+// Apply theme immediately to prevent FOUC
+(function initTheme() {
+    const saved = localStorage.getItem('memolo-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    // Update toggle UI when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => updateThemeUI(saved));
+    } else {
+        updateThemeUI(saved);
+    }
+})();
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('memolo-theme', next);
+    updateThemeUI(next);
+}
+
+function updateThemeUI(theme) {
+    const icon = document.getElementById('theme-icon');
+    const label = document.getElementById('theme-label');
+    if (icon) icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+    if (label) label.textContent = theme === 'dark' ? 'Dark mode' : 'Light mode';
+}
+
 const API = '';  // Same origin
 
 // ============ STATE ============
