@@ -469,6 +469,24 @@ body {
   background: rgba(88, 166, 255, 0.2);
 }
 
+.btn-danger {
+  background: rgba(248, 81, 73, 0.1);
+  border-color: rgba(248, 81, 73, 0.3);
+  color: #f85149;
+  font-size: 12px;
+}
+
+.btn-danger:hover {
+  background: rgba(248, 81, 73, 0.25);
+  border-color: rgba(248, 81, 73, 0.5);
+}
+
+.actor-manual {
+  background: rgba(188, 140, 255, 0.1);
+  color: #bc8cff;
+  border-color: rgba(188, 140, 255, 0.3);
+}
+
 /* ============ AGENT LIST ============ */
 .agent-item {
   display: flex;

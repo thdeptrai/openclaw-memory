@@ -235,12 +235,69 @@
       <div id="page-memories" class="page">
         <div class="page-header">
           <h2>Memories</h2>
-          <p>All stored memories across agents — click to expand details</p>
+          <p>All stored memories across agents — click to expand, manage your knowledge base</p>
         </div>
+
+        <!-- Add Memory Form (collapsed by default) -->
+        <div id="add-memory-panel" class="panel" style="display:none; margin-bottom: 16px;">
+          <div class="panel-header">
+            <h3>✏️ Add Custom Memory</h3>
+            <button class="btn" onclick="toggleAddMemoryForm()" style="font-size: 18px; padding: 2px 8px;">✕</button>
+          </div>
+          <div class="panel-body" style="padding: 16px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+              <div>
+                <label
+                  style="display:block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Type</label>
+                <select id="add-mem-type" class="search-input" style="width: 100%;">
+                  <option value="fact">✅ Fact</option>
+                  <option value="decision">🔮 Decision</option>
+                  <option value="preference">⭐ Preference</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  style="display:block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Topic</label>
+                <input id="add-mem-topic" class="search-input" placeholder="e.g. general, project-name" value="general"
+                  style="width: 100%;">
+              </div>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label
+                style="display:block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Content</label>
+              <textarea id="add-mem-content" class="search-input" rows="3"
+                placeholder="Enter your knowledge... e.g. 'User thích dùng PostgreSQL hơn MySQL'"
+                style="width: 100%; resize: vertical; font-family: inherit;"></textarea>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+              <div>
+                <label style="display:block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Tags (comma
+                  separated)</label>
+                <input id="add-mem-tags" class="search-input" placeholder="e.g. database, preference"
+                  style="width: 100%;">
+              </div>
+              <div>
+                <label
+                  style="display:block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Importance</label>
+                <input id="add-mem-importance" type="range" min="0" max="100" value="70" style="width: 100%;"
+                  oninput="document.getElementById('add-mem-imp-label').textContent = this.value + '%'">
+                <span id="add-mem-imp-label" style="font-size: 11px; color: var(--text-muted);">70%</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+              <button class="btn" onclick="toggleAddMemoryForm()">Cancel</button>
+              <button class="btn btn-primary" onclick="submitAddMemory()" id="btn-add-memory-submit">➕ Add
+                Memory</button>
+            </div>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="panel-header">
             <h3>💾 Memory Store</h3>
             <div class="panel-actions">
+              <button class="btn btn-primary" onclick="toggleAddMemoryForm()" id="btn-add-memory"
+                style="margin-right: 8px;">➕ Add Memory</button>
               <input class="search-input" id="memory-search" placeholder="Search all memories..." style="width: 260px;"
                 oninput="debounceSearchMemories(this.value)">
               <div class="tab-bar">
@@ -254,6 +311,7 @@
                 <button class="tab-btn active" onclick="filterMemoryActor('all', this)">All Sources</button>
                 <button class="tab-btn" onclick="filterMemoryActor('user', this)">👤 User</button>
                 <button class="tab-btn" onclick="filterMemoryActor('assistant', this)">🤖 Assistant</button>
+                <button class="tab-btn" onclick="filterMemoryActor('manual', this)">✏️ Manual</button>
               </div>
               <div class="tab-bar" style="margin-left: 8px; border-left: 1px solid var(--border); padding-left: 8px;">
                 <button class="tab-btn active" onclick="filterMemoryStatus('all', this)">All Status</button>
@@ -267,6 +325,7 @@
           </div>
         </div>
       </div>
+
 
       <!-- ==================== KNOWLEDGE PAGE ==================== -->
       <div id="page-knowledge" class="page">

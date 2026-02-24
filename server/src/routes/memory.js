@@ -459,19 +459,91 @@ router.get('/topics', async (req, res) => {
 });
 
 /**
+ * POST /api/memory/memories/add
+ * Manually add a memory (user-created knowledge)
+ */
+router.post('/memories/add', async (req, res) => {
+    try {
+        const { content, type = 'fact', agentId, tags = [], topic = 'general', importance = 0.7 } = req.body;
+        if (!content || !content.trim()) {
+            return res.status(400).json({ error: 'Content is required' });
+        }
+
+        const embeddingService = require('../services/embeddingService');
+        const vectorStore = require('../services/vectorStore');
+
+        // Create memory in PG
+        const mem = await db.addMemory({
+            type,
+            content: content.trim(),
+            sourceConversationId: null,
+            sourceAgentId: agentId || null,
+            importanceScore: importance,
+            tags,
+            topic,
+            scope: 'universal',
+            category: null,
+            contentHash: require('crypto').createHash('md5').update(content.trim()).digest('hex'),
+            actorId: 'manual',
+        });
+
+        // Generate embedding and index in Qdrant
+        try {
+            const embedding = await embeddingService.generateEmbedding(content.trim());
+            await vectorStore.upsertVector(mem.id, embedding, {
+                memory_id: mem.id,
+                agent_id: agentId || 'manual',
+                type,
+                content: content.trim().substring(0, 500),
+                importance_score: importance,
+                topic,
+                scope: 'universal',
+                created_at: new Date().toISOString(),
+            });
+        } catch (embErr) {
+            console.warn('⚠️ Manual memory: embedding failed, memory still saved:', embErr.message);
+        }
+
+        eventBus.push('info', `✏️ Manual memory added: "${content.substring(0, 50)}..."`, { source: 'dashboard' });
+        res.json({ success: true, data: mem });
+    } catch (error) {
+        console.error('Add memory error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
  * DELETE /api/memory/:id
- * Delete a specific memory by ID
+ * Delete a specific memory by ID (from both PG and Qdrant)
  */
 router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        const vectorStore = require('../services/vectorStore');
+
+        // Delete from PG
         const result = await db.query(
-            'DELETE FROM memories WHERE id = $1 RETURNING id',
+            'DELETE FROM memories WHERE id = $1 RETURNING id, content',
             [id]
         );
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Memory not found' });
         }
+
+        // Delete from Qdrant vector store
+        try {
+            await vectorStore.deleteVector(id);
+            await vectorStore.deleteByFilter('memory_id', id);
+        } catch (vecErr) {
+            console.warn('⚠️ Vector deletion failed (non-critical):', vecErr.message);
+        }
+
+        // Delete conversation links
+        try {
+            await db.query('DELETE FROM memory_conversations WHERE memory_id = $1', [id]);
+        } catch { /* non-critical */ }
+
+        eventBus.push('info', `🗑️ Memory deleted: ${id.substring(0, 8)}...`, { source: 'dashboard' });
         res.json({ success: true, deleted: id });
     } catch (error) {
         console.error('Delete memory error:', error);

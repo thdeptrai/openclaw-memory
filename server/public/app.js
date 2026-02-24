@@ -613,9 +613,9 @@ function renderMemory(m) {
     const status = m.status || (isSuperseded ? 'superseded' : 'active');
     const typeIcon = type === 'fact' ? '✅' : type === 'decision' ? '🔮' : type === 'preference' ? '⭐' : '📝';
     const scoreColor = score >= 0.7 ? 'high' : score >= 0.4 ? 'medium' : 'low';
-    const actorIcon = actorId === 'assistant' ? '🤖' : '👤';
-    const actorClass = actorId === 'assistant' ? 'actor-assistant' : 'actor-user';
-    const actorLabel = actorId === 'assistant' ? 'Assistant' : 'User';
+    const actorIcon = actorId === 'assistant' ? '🤖' : actorId === 'manual' ? '✏️' : '👤';
+    const actorClass = actorId === 'assistant' ? 'actor-assistant' : actorId === 'manual' ? 'actor-manual' : 'actor-user';
+    const actorLabel = actorId === 'assistant' ? 'Assistant' : actorId === 'manual' ? 'Manual' : 'User';
     const statusBadge = isSuperseded
         ? '<span class="memory-status-badge superseded" title="This memory has been superseded by a newer version">🔄 superseded</span>'
         : '<span class="memory-status-badge active" title="This memory is current and active">● active</span>';
@@ -654,6 +654,11 @@ function renderMemory(m) {
           <div class="detail-row"><span class="detail-label">Created</span><span class="detail-value">${m.created_at || m.createdAt || '—'}</span></div>
           ${m.tags && m.tags.length ? `<div class="detail-row"><span class="detail-label">Tags</span><span class="detail-value">${m.tags.map(t => `<span class="memory-tag">${escHtml(t)}</span>`).join(' ')}</span></div>` : ''}
           <div class="full-text">${escHtml(m.content)}</div>
+          <div class="memory-actions" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; gap: 8px;">
+            <button class="btn btn-danger" onclick="event.stopPropagation(); deleteMemory('${m.id}', this)" title="Delete this memory permanently">
+              🗑️ Delete
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1455,4 +1460,96 @@ function toggleRawJson() {
 function escapeHtml(str) {
     if (typeof str !== 'string') return String(str);
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ============ MEMORY MANAGEMENT: DELETE + ADD ============
+
+async function deleteMemory(memoryId, btnEl) {
+    if (!confirm('Are you sure you want to permanently delete this memory?\n\nThis will remove it from both the database and vector store.')) {
+        return;
+    }
+
+    btnEl.disabled = true;
+    btnEl.textContent = '⏳ Deleting...';
+
+    try {
+        const result = await api('DELETE', `/api/memory/${memoryId}`);
+        if (result.success) {
+            // Animate removal
+            const card = btnEl.closest('.memory-item');
+            if (card) {
+                card.style.transition = 'opacity 0.3s, transform 0.3s';
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(-20px)';
+                setTimeout(() => card.remove(), 300);
+            }
+            // Remove from allMemories
+            allMemories = allMemories.filter(m => m.id !== memoryId);
+            showToast('🗑️', 'Memory Deleted', 'Successfully removed from database and vector store');
+        } else {
+            throw new Error(result.error || 'Delete failed');
+        }
+    } catch (err) {
+        btnEl.disabled = false;
+        btnEl.textContent = '🗑️ Delete';
+        showToast('❌', 'Delete Failed', err.message);
+    }
+}
+
+function toggleAddMemoryForm() {
+    const panel = document.getElementById('add-memory-panel');
+    const isVisible = panel.style.display !== 'none';
+    panel.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) {
+        document.getElementById('add-mem-content').focus();
+    }
+}
+
+async function submitAddMemory() {
+    const content = document.getElementById('add-mem-content').value.trim();
+    const type = document.getElementById('add-mem-type').value;
+    const topic = document.getElementById('add-mem-topic').value.trim() || 'general';
+    const tagsRaw = document.getElementById('add-mem-tags').value.trim();
+    const importance = parseInt(document.getElementById('add-mem-importance').value) / 100;
+
+    if (!content) {
+        showToast('⚠️', 'Missing Content', 'Please enter the memory content');
+        document.getElementById('add-mem-content').focus();
+        return;
+    }
+
+    const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(t => t) : [];
+    const btn = document.getElementById('btn-add-memory-submit');
+    btn.disabled = true;
+    btn.textContent = '⏳ Adding...';
+
+    try {
+        const result = await api('POST', '/api/memory/memories/add', {
+            content,
+            type,
+            topic,
+            tags,
+            importance,
+        });
+
+        if (result.success) {
+            showToast('✅', 'Memory Added', `"${content.substring(0, 50)}..." saved successfully`);
+            // Reset form
+            document.getElementById('add-mem-content').value = '';
+            document.getElementById('add-mem-tags').value = '';
+            document.getElementById('add-mem-importance').value = '70';
+            document.getElementById('add-mem-imp-label').textContent = '70%';
+            // Hide form
+            toggleAddMemoryForm();
+            // Reload memories
+            loadMemoriesFull();
+        } else {
+            throw new Error(result.error || 'Failed to add memory');
+        }
+    } catch (err) {
+        showToast('❌', 'Add Failed', err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '➕ Add Memory';
+    }
 }
