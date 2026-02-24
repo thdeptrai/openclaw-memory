@@ -26,6 +26,12 @@ fi
 
 echo "✅ Downloaded to $PLUGIN_DIR"
 
+# Install dependencies
+echo "📦 Installing dependencies..."
+cd "$PLUGIN_DIR"
+npm install --production --silent
+cd - > /dev/null
+
 # Install via OpenClaw CLI
 echo "📦 Installing plugin..."
 openclaw plugins install -l "$PLUGIN_DIR"
