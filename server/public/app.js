@@ -8,7 +8,7 @@
 // Apply theme immediately to prevent FOUC
 (function initTheme() {
     const saved = localStorage.getItem('memolo-theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', saved);
+    document.documentElement.setAttribute('data-bs-theme', saved);
     // Update toggle UI when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => updateThemeUI(saved));
@@ -18,9 +18,9 @@
 })();
 
 function toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const current = document.documentElement.getAttribute('data-bs-theme') || 'dark';
     const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
+    document.documentElement.setAttribute('data-bs-theme', next);
     localStorage.setItem('memolo-theme', next);
     updateThemeUI(next);
 }
@@ -53,10 +53,18 @@ let sseReady = false; // suppress toasts during SSE catch-up replay
 
 function showPage(page) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.sidebar-link').forEach(n => n.classList.remove('active'));
 
     document.getElementById(`page-${page}`).classList.add('active');
-    document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
+    const navLink = document.querySelector(`.sidebar-link[data-page="${page}"]`);
+    if (navLink) navLink.classList.add('active');
+
+    // Close offcanvas sidebar on mobile after navigation
+    const sidebar = document.getElementById('sidebarMenu');
+    if (sidebar && window.innerWidth < 992) {
+        const bsOffcanvas = bootstrap.Offcanvas.getInstance(sidebar);
+        if (bsOffcanvas) bsOffcanvas.hide();
+    }
 
     // Load page-specific data
     if (page === 'conversations') loadConversations();
@@ -774,21 +782,21 @@ function debounceSearchMemories(query) {
 
 function filterMemoryType(type, btn) {
     currentMemoryFilter = type;
-    btn.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     applyMemoryFilters();
 }
 
 function filterMemoryActor(actor, btn) {
     currentActorFilter = actor;
-    btn.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     applyMemoryFilters();
 }
 
 function filterMemoryStatus(status, btn) {
     currentStatusFilter = status;
-    btn.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     applyMemoryFilters();
 }
@@ -881,7 +889,7 @@ function renderLogEntry(entry, containerId, animate) {
 
 function filterLogs(level, btn) {
     currentLogFilter = level;
-    btn.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
     ['dash-logs-list', 'logs-full-list'].forEach(id => {
@@ -990,11 +998,10 @@ async function renderMemoloApiKeysPanel() {
         const statusEl = document.getElementById('master-key-status');
         if (statusEl && json) {
             const authEnabled = json.auth === 'enabled';
-            const statusColor = authEnabled ? '#10b981' : '#f59e0b';
+            const badgeClass = authEnabled ? 'bg-success' : 'bg-warning text-dark';
             const statusIcon = authEnabled ? '✓' : '⚠';
             const statusText = authEnabled ? 'Enabled' : 'Disabled (dev mode)';
-            statusEl.style.color = statusColor;
-            statusEl.innerHTML = `<span class="api-key-status-dot" style="background: ${statusColor}"></span><span>${statusIcon} ${statusText}</span>`;
+            statusEl.innerHTML = `<span class="badge ${badgeClass}">${statusIcon} ${statusText}</span>`;
         }
     } catch { }
 
@@ -1004,7 +1011,7 @@ async function renderMemoloApiKeysPanel() {
         const countEl = document.getElementById('agent-keys-count');
         if (countEl && res.success) {
             const count = res.data.length;
-            countEl.innerHTML = `<span>🤖 ${count} agent${count !== 1 ? 's' : ''} registered</span>`;
+            countEl.innerHTML = `<span class="badge bg-secondary">🤖 ${count} agent${count !== 1 ? 's' : ''}</span>`;
         }
     } catch { }
 }
