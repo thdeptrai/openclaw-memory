@@ -1342,11 +1342,10 @@ function renderRecallResults(data, elapsed, query) {
     const container = document.getElementById('recall-results');
 
     const sections = [
-        { key: 'semanticMemories', label: '🧠 Semantic Memories', icon: '🧠', description: 'Vector similarity search results' },
-        { key: 'recentExchanges', label: '💬 Recent Exchanges', icon: '💬', description: 'Recent conversation context' },
+        { key: 'semanticMemories', label: '🧠 Semantic Memories', icon: '🧠', description: 'Extracted facts via vector search' },
         { key: 'crossAgentMemories', label: '🔗 Cross-Agent Memories', icon: '🔗', description: 'Memories from other agents' },
         { key: 'summaries', label: '📝 Summaries', icon: '📝', description: 'Conversation summaries' },
-        { key: 'knowledgeBase', label: '📚 Knowledge Base', icon: '📚', description: 'Knowledge graph entries' },
+        { key: 'knowledgeBase', label: '📚 Knowledge Base', icon: '📚', description: 'Consolidated knowledge entries' },
     ];
 
     // Count total results
@@ -1418,24 +1417,19 @@ function renderRecallItem(item, sectionKey) {
         if (tags.length > 0) {
             html += `<div class="recall-tags">${tags.map(t => `<span class="recall-tag">${escapeHtml(t)}</span>`).join('')}</div>`;
         }
-    } else if (sectionKey === 'recentExchanges') {
-        const userMsg = item.user_message || '';
-        const agentMsg = item.agent_response || '';
-        html += `<div class="recall-exchange">`;
-        html += `<div class="recall-exchange-user"><span class="role-label">User:</span> ${escapeHtml(userMsg)}</div>`;
-        if (agentMsg) html += `<div class="recall-exchange-agent"><span class="role-label">Agent:</span> ${escapeHtml(agentMsg.substring(0, 300))}${agentMsg.length > 300 ? '...' : ''}</div>`;
-        html += `</div>`;
     } else if (sectionKey === 'summaries') {
         const summary = item.summary || item.content || JSON.stringify(item);
         html += `<div class="recall-item-content recall-summary-text">${escapeHtml(summary)}</div>`;
     } else if (sectionKey === 'knowledgeBase') {
-        const subject = item.subject || '';
-        const predicate = item.predicate || '';
-        const object = item.object || '';
-        html += `<div class="recall-knowledge-triple">`;
-        html += `<span class="knowledge-subject">${escapeHtml(subject)}</span>`;
-        html += `<span class="knowledge-predicate">${escapeHtml(predicate)}</span>`;
-        html += `<span class="knowledge-object">${escapeHtml(object)}</span>`;
+        const topic = item.topic || '';
+        const content = item.content || '';
+        const confidence = item.confidence !== undefined ? (item.confidence * 100).toFixed(0) : null;
+        html += `<div class="recall-knowledge-entry">`;
+        html += `<div class="recall-item-header">`;
+        if (topic) html += `<span class="recall-topic-tag">📚 ${escapeHtml(topic)}</span>`;
+        if (confidence !== null) html += `<span class="recall-importance">🎯${confidence}%</span>`;
+        html += `</div>`;
+        html += `<div class="recall-item-content">${escapeHtml(content)}</div>`;
         html += `</div>`;
     } else {
         html += `<div class="recall-item-content">${escapeHtml(JSON.stringify(item, null, 2))}</div>`;
