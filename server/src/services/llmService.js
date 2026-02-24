@@ -79,7 +79,7 @@ async function callMiniMaxProvider(messages, options = {}) {
         },
         body: JSON.stringify({
             model,
-            max_tokens: options.maxTokens || 2000,
+            max_tokens: options.maxTokens || 4000,
             system: systemPrompt || 'You are a helpful assistant.',
             messages: anthropicMessages,
         }),
@@ -226,10 +226,11 @@ function parseJsonResponse(text) {
         try { return JSON.parse(truncated); } catch { /* continue */ }
     }
 
-    // Repair truncated JSON arrays (common with max_tokens cutoff)
-    // e.g. [{"topic":"A","confidence":0.9},{"topic":"B","content":"y...
+    // Repair truncated JSON (common with max_tokens cutoff)
+    // Strategy: find last complete array item, close brackets
+
+    // Case 1: truncated array e.g. [{...},{"text":"abc...
     if (cleaned.startsWith('[')) {
-        // Find last complete object: last "}," before the truncation point
         const lastCompleteObj = cleaned.lastIndexOf('},');
         if (lastCompleteObj > 0) {
             const repaired = cleaned.substring(0, lastCompleteObj + 1) + ']';
@@ -239,7 +240,6 @@ function parseJsonResponse(text) {
                 return result;
             } catch { /* continue */ }
         }
-        // Try closing after last complete }
         const lastObj = cleaned.lastIndexOf('}');
         if (lastObj > 0) {
             try {
@@ -247,6 +247,35 @@ function parseJsonResponse(text) {
                 const result2 = JSON.parse(repaired2);
                 console.log(`  🔧 Repaired truncated JSON array: recovered ${result2.length} entries`);
                 return result2;
+            } catch { /* give up */ }
+        }
+    }
+
+    // Case 2: truncated object with arrays e.g. {"user_facts":[{...},{"text":"abc...
+    if (cleaned.startsWith('{')) {
+        // Try closing at each "}]" from the end
+        let pos = cleaned.length;
+        while (pos > 0) {
+            pos = cleaned.lastIndexOf('}', pos - 1);
+            if (pos <= 0) break;
+            // Try closing: "...}]}" or "...}]}"
+            for (const suffix of ['}', ']}', ']}']) {
+                try {
+                    const repaired = cleaned.substring(0, pos + 1) + suffix;
+                    const result = JSON.parse(repaired);
+                    console.log(`  🔧 Repaired truncated JSON object`);
+                    return result;
+                } catch { /* continue */ }
+            }
+        }
+        // Last resort: find last "}," in an array, close array + object
+        const lastItem = cleaned.lastIndexOf('},');
+        if (lastItem > 0) {
+            const repaired = cleaned.substring(0, lastItem + 1) + ']}';
+            try {
+                const result = JSON.parse(repaired);
+                console.log(`  🔧 Repaired truncated JSON object (array fallback)`);
+                return result;
             } catch { /* give up */ }
         }
     }
