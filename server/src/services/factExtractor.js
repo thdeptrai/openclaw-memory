@@ -353,6 +353,14 @@ IGNORE: questions asked, procedural steps, code snippets, status updates, generi
 - Code blocks or specific commands
 - Rephrased versions of the other party's words
 
+=== IMPORTANCE SCORING ===
+Rate each fact's long-term importance from 0.0 to 1.0:
+- 0.9-1.0: Identity (name, job, location), core long-term preferences, relationships
+- 0.7-0.8: Technical decisions, project architecture, accepted recommendations
+- 0.5-0.6: Project-specific details, temporary preferences, current tasks
+- 0.3-0.4: Temporary events ("today I..."), short-term plans, session-specific context
+- 0.1-0.2: Trivial acknowledgments that somehow passed the filter
+
 === DEDUP RULES ===
 - ADD: genuinely new information
 - UPDATE: existing memory is CONTRADICTED (provide old_memory_id)
@@ -374,10 +382,10 @@ EXISTING MEMORIES:
 Extract facts AND decide dedup actions. Return JSON:
 {
   "user_facts": [
-    { "text": "fact about the user", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null }
+    { "text": "fact about the user", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null, "importance": 0.8 }
   ],
   "agent_facts": [
-    { "text": "fact about the assistant", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null }
+    { "text": "fact about the assistant", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null, "importance": 0.7 }
   ],
   "entities": ["tech/tool/person mentioned"],
   "topic": "main topic"
@@ -421,8 +429,8 @@ async function extractAndDedup(userMessage, agentResponse, existingMemories = ne
     });
 
     return {
-        user_facts: Array.isArray(result.user_facts) ? result.user_facts.filter(f => f && f.text && f.text.length > 10) : [],
-        agent_facts: Array.isArray(result.agent_facts) ? result.agent_facts.filter(f => f && f.text && f.text.length > 10) : [],
+        user_facts: Array.isArray(result.user_facts) ? result.user_facts.filter(f => f && f.text && f.text.length > 10).map(f => ({ ...f, importance: parseFloat(f.importance) || 0.7 })) : [],
+        agent_facts: Array.isArray(result.agent_facts) ? result.agent_facts.filter(f => f && f.text && f.text.length > 10).map(f => ({ ...f, importance: parseFloat(f.importance) || 0.7 })) : [],
         entities: Array.isArray(result.entities) ? result.entities : [],
         topic: result.topic || 'general',
         _existingMemoryEntries: memoryEntries, // pass through for action resolution
@@ -440,10 +448,10 @@ EXISTING MEMORIES:
 Extract facts from ALL exchanges AND decide dedup actions. Return JSON:
 {
   "user_facts": [
-    { "text": "fact about the user", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null }
+    { "text": "fact about the user", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null, "importance": 0.8 }
   ],
   "agent_facts": [
-    { "text": "fact about the assistant", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null }
+    { "text": "fact about the assistant", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null, "importance": 0.7 }
   ],
   "entities": ["tech/tool/person mentioned"],
   "topic": "main topic"
@@ -490,8 +498,8 @@ async function extractAndDedupBatch(exchanges, existingMemories = new Map()) {
     });
 
     return {
-        user_facts: Array.isArray(result.user_facts) ? result.user_facts.filter(f => f && f.text && f.text.length > 10) : [],
-        agent_facts: Array.isArray(result.agent_facts) ? result.agent_facts.filter(f => f && f.text && f.text.length > 10) : [],
+        user_facts: Array.isArray(result.user_facts) ? result.user_facts.filter(f => f && f.text && f.text.length > 10).map(f => ({ ...f, importance: parseFloat(f.importance) || 0.7 })) : [],
+        agent_facts: Array.isArray(result.agent_facts) ? result.agent_facts.filter(f => f && f.text && f.text.length > 10).map(f => ({ ...f, importance: parseFloat(f.importance) || 0.7 })) : [],
         entities: Array.isArray(result.entities) ? result.entities : [],
         topic: result.topic || 'general',
         _existingMemoryEntries: memoryEntries,

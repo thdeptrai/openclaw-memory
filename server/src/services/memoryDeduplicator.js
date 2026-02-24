@@ -353,14 +353,14 @@ async function applyActions(actions, facts, embeddingMap, existingMemories, cont
 // ============ HELPERS ============
 
 async function addNewMemory(content, embedding, context, contentHash = null) {
-    const { agentId, conversationId, topic = 'general', scope = 'unknown', actorId = 'user' } = context;
+    const { agentId, conversationId, topic = 'general', scope = 'unknown', actorId = 'user', importance = 0.7 } = context;
 
     const mem = await db.addMemory({
         type: 'fact',
         content,
         sourceConversationId: conversationId,
         sourceAgentId: agentId,
-        importanceScore: 0.7,
+        importanceScore: Math.max(0.1, Math.min(1.0, importance)),
         tags: context.entities || [],
         topic,
         scope,
@@ -381,7 +381,7 @@ async function addNewMemory(content, embedding, context, contentHash = null) {
                 type: 'fact',
                 content: content.substring(0, 500),
                 conversation_id: conversationId,
-                importance_score: 0.7,
+                importance_score: Math.max(0.1, Math.min(1.0, importance)),
                 topic,
                 scope,
                 created_at: new Date().toISOString(),

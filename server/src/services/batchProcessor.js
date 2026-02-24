@@ -179,6 +179,7 @@ async function processBatch(agentId, entries) {
             scope: 'unknown',
             entities,
             actorId: factEntry.actorId,
+            importance: factEntry.importance || 0.7,
         };
 
         if (action === 'NONE') {
@@ -302,6 +303,7 @@ async function processImmediately(entry) {
                     topic: extractedTopic || topic || 'general',
                     scope: 'unknown', entities,
                     actorId: factEntry.actorId,
+                    importance: factEntry.importance || 0.7,
                 };
 
                 if (action === 'NONE') { skipped++; continue; }
