@@ -1,12 +1,5 @@
 const intelligenceService = require('./intelligenceService');
 
-// Lazy-load to avoid circular dependency
-let memoryService;
-function getMemoryService() {
-    if (!memoryService) memoryService = require('./memoryService');
-    return memoryService;
-}
-
 /**
  * Scheduler — Runs periodic intelligence tasks
  *
@@ -27,12 +20,7 @@ class Scheduler {
 
         console.log('⏰ Scheduler started');
 
-        // 1. Summarization sweep — every 2 minutes (catches missed/failed summarizations)
-        this.schedule('Summarization Sweep', 2 * 60 * 1000, async () => {
-            await getMemoryService().sweepUnsummarized();
-        });
-
-        // 2. Apply memory decay — every 6 hours
+        // 1. Apply memory decay — every 6 hours
         this.schedule('Memory Decay', 6 * 60 * 60 * 1000, async () => {
             await intelligenceService.applyDecay();
         });

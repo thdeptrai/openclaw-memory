@@ -34,15 +34,12 @@ const defaults = {
     'factExtraction.timeout': config.factExtraction.timeout,
     'factExtraction.dedupTimeout': config.factExtraction.dedupTimeout,
     'reranking.timeout': config.reranking.timeout,
-    'summarizer.timeout': parseInt(process.env.OLLAMA_TIMEOUT || '180000'),
 
     // Memory Parameters
-    'memory.summarizeAfterExchanges': config.memory.summarizeAfterExchanges,
     'memory.vectorScoreThreshold': 0.3,
     'memory.agentFactMinResponseLength': 100,
 
     // Scheduler Intervals (ms)
-    'scheduler.summarizationSweep': 2 * 60 * 1000,
     'scheduler.memoryDecay': 6 * 60 * 60 * 1000,
     'scheduler.duplicateDetection': 2 * 60 * 60 * 1000,
 
@@ -88,13 +85,12 @@ const settingsMeta = {
     'factExtraction.timeout': { label: 'Fact Extract Timeout', group: 'Timeouts', type: 'number', min: 5000, max: 300000, unit: 'ms', description: 'Max time for LLM fact extraction call' },
     'factExtraction.dedupTimeout': { label: 'Dedup Timeout', group: 'Timeouts', type: 'number', min: 5000, max: 300000, unit: 'ms', description: 'Max time for LLM deduplication call' },
     'reranking.timeout': { label: 'Rerank Timeout', group: 'Timeouts', type: 'number', min: 5000, max: 300000, unit: 'ms', description: 'Max time for LLM reranking call' },
-    'summarizer.timeout': { label: 'Summarizer Timeout', group: 'Timeouts', type: 'number', min: 10000, max: 600000, unit: 'ms', description: 'Max time for summarization LLM call' },
 
-    'memory.summarizeAfterExchanges': { label: 'Summarize After N Exchanges', group: 'Memory', type: 'number', min: 1, max: 50, description: 'Number of exchanges before triggering conversation summarization' },
+
     'memory.vectorScoreThreshold': { label: 'Vector Score Threshold', group: 'Memory', type: 'number', min: 0.0, max: 1.0, step: 0.05, description: 'Minimum cosine similarity score for vector search results (lower = more results but less relevant)' },
     'memory.agentFactMinResponseLength': { label: 'Agent Fact Min Response Length', group: 'Memory', type: 'number', min: 10, max: 500, description: 'Minimum agent response length (chars) to trigger agent fact extraction' },
 
-    'scheduler.summarizationSweep': { label: 'Summarization Sweep', group: 'Scheduler', type: 'number', min: 30000, max: 3600000, unit: 'ms', description: 'How often to check for missed summarizations' },
+
     'scheduler.memoryDecay': { label: 'Memory Decay', group: 'Scheduler', type: 'number', min: 60000, max: 86400000, unit: 'ms', description: 'How often to apply memory importance decay' },
     'scheduler.duplicateDetection': { label: 'Duplicate Detection', group: 'Scheduler', type: 'number', min: 60000, max: 86400000, unit: 'ms', description: 'How often to scan for and merge duplicate memories' },
 

@@ -2,7 +2,6 @@ const crypto = require('crypto');
 const db = require('../models');
 const vectorStore = require('./vectorStore');
 const embeddingService = require('./embeddingService');
-const summarizer = require('./summarizer');
 const config = require('../config');
 const runtimeConfig = require('../runtimeConfig');
 const llmService = require('./llmService');

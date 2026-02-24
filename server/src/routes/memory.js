@@ -99,41 +99,6 @@ router.post('/search', async (req, res) => {
 });
 
 /**
- * POST /api/memory/summarize
- * Manually trigger summarization for a conversation
- */
-router.post('/summarize', async (req, res) => {
-    try {
-        const { conversationId } = req.body;
-
-        if (!conversationId) {
-            return res.status(400).json({ error: 'Missing required field: conversationId' });
-        }
-
-        const conv = await db.getConversation(conversationId);
-        if (!conv) {
-            return res.status(404).json({ error: 'Conversation not found' });
-        }
-
-        const lastSeq = await db.getLatestSummarySequence(conversationId);
-        const count = await db.getExchangeCount(conversationId);
-
-        if (count <= lastSeq) {
-            return res.json({ success: true, message: 'Nothing new to summarize' });
-        }
-
-        const summary = await memoryService.triggerSummarization(
-            conversationId, conv.agent_id, lastSeq + 1, count
-        );
-
-        res.json({ success: true, data: summary });
-    } catch (error) {
-        console.error('Summarize error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
  * GET /api/memory/conversations/:id
  * Get conversation details with exchanges
  */
@@ -154,20 +119,6 @@ router.get('/conversations/:id', async (req, res) => {
         });
     } catch (error) {
         console.error('Get conversation error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-/**
- * POST /api/memory/conversations/:id/end
- * End a conversation and trigger final summarization
- */
-router.post('/conversations/:id/end', async (req, res) => {
-    try {
-        const result = await memoryService.endConversation(req.params.id);
-        res.json({ success: true, data: result });
-    } catch (error) {
-        console.error('End conversation error:', error);
         res.status(500).json({ error: error.message });
     }
 });
