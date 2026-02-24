@@ -343,6 +343,131 @@ Return ONLY the JSON array.`;
         return insertedCount;
     }
 
+    /**
+     * Mem0-style incremental KB consolidation.
+     * For each new fact: search existing KB → LLM decides ADD/UPDATE/DELETE/NOOP → execute.
+     * Called immediately after fact extraction (not batched).
+     * @param {Array<{content: string, type: string}>} newFacts - newly extracted facts
+     */
+    async consolidateNewFacts(newFacts) {
+        if (!newFacts || newFacts.length === 0) return { added: 0, updated: 0, deleted: 0, unchanged: 0 };
+
+        const stats = { added: 0, updated: 0, deleted: 0, unchanged: 0 };
+        const provider = runtimeConfig.get('llm.provider') || 'minimax';
+        const isMiniMax = provider === 'minimax';
+
+        for (const fact of newFacts) {
+            try {
+                const factText = fact.content || fact;
+                if (!factText || factText.length < 5) continue;
+
+                // 1. Search existing KB for similar entries
+                let existingEntries = [];
+                try {
+                    const kbResults = await db.query(
+                        `SELECT id, topic, content, confidence_score FROM knowledge_base
+                         ORDER BY confidence_score DESC LIMIT 50`
+                    );
+
+                    // Simple keyword matching to find related KB entries
+                    const factWords = factText.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+                    existingEntries = kbResults.rows
+                        .map(kb => {
+                            const kbText = (kb.topic + ' ' + kb.content).toLowerCase();
+                            const hits = factWords.filter(w => kbText.includes(w)).length;
+                            return { ...kb, relevance: hits / Math.max(factWords.length, 1) };
+                        })
+                        .filter(kb => kb.relevance > 0.2)
+                        .sort((a, b) => b.relevance - a.relevance)
+                        .slice(0, 5);
+                } catch { /* KB table may not exist yet */ }
+
+                // 2. LLM decides: ADD, UPDATE, DELETE, or NOOP
+                const existingFormatted = existingEntries.length > 0
+                    ? existingEntries.map((e, i) => `[${i}] topic="${e.topic}" | ${e.content}`).join('\n')
+                    : '(empty)';
+
+                const systemPrompt = isMiniMax
+                    ? 'You manage a knowledge base. Given a new fact and existing KB entries, decide: ADD (new entry), UPDATE (modify existing), DELETE (contradicts existing), or NOOP (already known). Return JSON only.'
+                    : `You are a smart KB manager. Compare a new fact against existing KB entries and decide the action.
+Operations:
+- ADD: new information not in KB → create new entry with topic and content
+- UPDATE: enriches or corrects an existing entry → specify which entry ID to update
+- DELETE: directly contradicts an existing entry → specify which entry ID to delete
+- NOOP: fact already captured in KB → no change needed
+Return JSON only. Keep the ORIGINAL LANGUAGE of the fact.`;
+
+                const userPrompt = `EXISTING KB:
+${existingFormatted}
+
+NEW FACT: "${factText}"
+
+Return JSON:
+{"action": "ADD|UPDATE|DELETE|NOOP", "entry_id": null_or_index, "topic": "...", "content": "...", "confidence": 0.9}
+
+- For ADD: provide topic + content for the new entry
+- For UPDATE: provide entry_id (index) + updated content
+- For DELETE: provide entry_id (index)
+- For NOOP: just return action=NOOP
+Return ONLY the JSON.`;
+
+                const decision = await llmService.chatJSON(systemPrompt, userPrompt, {
+                    maxTokens: isMiniMax ? 500 : 1000,
+                    timeout: isMiniMax ? 30000 : 60000,
+                    purpose: 'kb_consolidation',
+                });
+
+                if (!decision || !decision.action) continue;
+
+                // 3. Execute the decision
+                const action = decision.action.toUpperCase();
+
+                if (action === 'ADD' && decision.topic && decision.content) {
+                    await db.query(
+                        `INSERT INTO knowledge_base (topic, content, confidence_score, source_memories, last_updated)
+                         VALUES ($1, $2, $3, $4, NOW())`,
+                        [decision.topic, decision.content, decision.confidence || 0.8, JSON.stringify([])]
+                    );
+                    stats.added++;
+                    console.log(`  📥 KB ADD: "${decision.topic}" → ${decision.content.substring(0, 60)}...`);
+
+                } else if (action === 'UPDATE' && decision.entry_id != null) {
+                    const idx = parseInt(decision.entry_id);
+                    if (idx >= 0 && idx < existingEntries.length) {
+                        const target = existingEntries[idx];
+                        await db.query(
+                            `UPDATE knowledge_base SET content = $1, confidence_score = $2, last_updated = NOW()
+                             WHERE id = $3`,
+                            [decision.content || target.content, decision.confidence || target.confidence_score, target.id]
+                        );
+                        stats.updated++;
+                        console.log(`  ✏️ KB UPDATE [${target.topic}]: ${(decision.content || '').substring(0, 60)}...`);
+                    }
+
+                } else if (action === 'DELETE' && decision.entry_id != null) {
+                    const idx = parseInt(decision.entry_id);
+                    if (idx >= 0 && idx < existingEntries.length) {
+                        const target = existingEntries[idx];
+                        await db.query(`DELETE FROM knowledge_base WHERE id = $1`, [target.id]);
+                        stats.deleted++;
+                        console.log(`  🗑️ KB DELETE [${target.topic}]: contradicted`);
+                    }
+
+                } else {
+                    stats.unchanged++;
+                }
+
+            } catch (err) {
+                console.warn(`  ⚠️ KB consolidation failed for fact: ${err.message}`);
+            }
+        }
+
+        if (stats.added + stats.updated + stats.deleted > 0) {
+            console.log(`📚 KB incremental update: +${stats.added} ✏️${stats.updated} 🗑️${stats.deleted} =${stats.unchanged}`);
+        }
+        return stats;
+    }
+
     // ==================== LOCAL KB EXTRACTION (fallback) ====================
 
     /**

@@ -221,12 +221,11 @@ class MemoryService {
 
     /**
      * Recall relevant memories for a query
-     * Enhanced with: query enrichment, importance filtering, keyword boosting, topic-aware ranking
+     * Mem0-style: returns extracted facts only — no raw exchanges
      */
     async recall(query, { agentId, conversationId = null, limit = 10, includeOtherAgents = true, topic = null } = {}) {
         const results = {
-            semanticMemories: [],
-            recentExchanges: [],
+            semanticMemories: [],  // facts, decisions, insights, preferences only
             crossAgentMemories: [],
             summaries: [],
             knowledgeBase: [],
@@ -414,6 +413,13 @@ class MemoryService {
                 } catch { /* non-critical — proceed without filter */ }
             }
 
+            // Mem0-style: exclude raw exchanges — only return extracted facts
+            const FACT_TYPES = new Set(['fact', 'decision', 'insight', 'preference']);
+            rankedResults = rankedResults.filter(r => {
+                const memType = (r.payload && r.payload.type) || 'exchange';
+                return FACT_TYPES.has(memType);
+            });
+
             // Sort by re-ranked score and take top N
             rankedResults.sort((a, b) => b.score - a.score);
             results.semanticMemories = rankedResults.slice(0, limit);
@@ -431,16 +437,8 @@ class MemoryService {
         // These are all read-only queries that don't depend on each other.
         const parallelTasks = [];
 
-        // Task A: Recent exchanges + summaries (from current conversation)
+        // Task A: Summaries only (no raw exchanges — Mem0 style)
         parallelTasks.push(conversationId ? (async () => {
-            const recentExchanges = await db.getRecentExchanges(conversationId, 5);
-            results.recentExchanges = recentExchanges.map(ex => ({
-                id: ex.id,
-                userMessage: ex.user_message,
-                agentResponse: ex.agent_response,
-                sequenceNum: ex.sequence_num,
-                createdAt: ex.created_at,
-            }));
             const summaries = await db.getSummaries(conversationId);
             results.summaries = summaries.map(s => ({
                 id: s.id,

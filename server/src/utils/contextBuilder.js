@@ -85,15 +85,8 @@ function buildContextFromMemories(memories, maxLength = 3000) {
         parts.push('');
     }
 
-    // Recent exchanges (immediate conversation context)
-    if (memories.recentExchanges && memories.recentExchanges.length > 0) {
-        parts.push('=== Recent Conversation ===');
-        for (const ex of memories.recentExchanges) {
-            parts.push(`User: ${ex.userMessage}`);
-            parts.push(`Agent: ${ex.agentResponse}`);
-            parts.push('');
-        }
-    }
+    // Note: Raw exchanges are no longer included in recall (Mem0 style)
+    // Context is built from: semantic facts + KB + summaries + cross-agent
 
     let context = parts.join('\n');
 

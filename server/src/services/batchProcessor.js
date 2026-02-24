@@ -248,20 +248,21 @@ async function processBatch(agentId, entries) {
         }
     }
 
-    // === Step 5: Auto-consolidate KB if enough new memories ===
+    // === Step 5: Mem0-style incremental KB consolidation ===
+    // Instead of waiting for a threshold, immediately consolidate new facts into KB
     if (added > 0) {
-        _memoriesSinceConsolidation += added;
-        const KB_CONSOLIDATION_THRESHOLD = 20;
-        if (_memoriesSinceConsolidation >= KB_CONSOLIDATION_THRESHOLD) {
-            _memoriesSinceConsolidation = 0;
-            // Run async — don't block the batch response
+        const newFactsForKB = allFacts
+            .filter(f => (f.action || 'ADD').toUpperCase() === 'ADD')
+            .map(f => ({ content: f.text, type: f.type || 'fact' }));
+
+        if (newFactsForKB.length > 0) {
             setImmediate(async () => {
                 try {
                     const intelligenceService = require('./intelligenceService');
-                    console.log('📚 Auto-consolidating KB (threshold reached)...');
-                    await intelligenceService.consolidateKnowledge();
+                    console.log(`📚 Incremental KB update: ${newFactsForKB.length} new facts...`);
+                    await intelligenceService.consolidateNewFacts(newFactsForKB);
                 } catch (err) {
-                    console.warn('⚠️ Auto KB consolidation failed:', err.message);
+                    console.warn('⚠️ Incremental KB consolidation failed:', err.message);
                 }
             });
         }
@@ -398,6 +399,20 @@ async function processImmediately(entry) {
                         actorId: 'assistant',
                     });
                 } catch (err) { console.warn('⚠️ Agent fact error:', err.message); }
+            }
+
+            // Mem0-style: incremental KB consolidation for new facts
+            const allNewFacts = [
+                ...facts.map(f => ({ content: f, type: 'fact' })),
+                ...(agentFacts || []).map(f => ({ content: f, type: 'fact' })),
+            ];
+            if (allNewFacts.length > 0) {
+                setImmediate(async () => {
+                    try {
+                        const intelligenceService = require('./intelligenceService');
+                        await intelligenceService.consolidateNewFacts(allNewFacts);
+                    } catch (err) { console.warn('⚠️ KB consolidation failed:', err.message); }
+                });
             }
         }
     } catch (err) {
