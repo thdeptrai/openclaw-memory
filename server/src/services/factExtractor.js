@@ -25,13 +25,13 @@ function estimateTokens(text) {
 
 /**
  * Get max input token budget for current provider.
- * MiniMax has a small context window (~2013 tokens total, reserve 400 for output).
- * Ollama has much larger context windows.
+ * MiniMax M2.5: 200K context window, 128K max output.
+ * Ollama: depends on model, typically 8-32K.
  */
 function getMaxInputTokens() {
     const provider = runtimeConfig.get('llm.provider') || 'minimax';
     if (provider === 'minimax') {
-        return runtimeConfig.get('minimax.maxInputTokens') || 1600;
+        return runtimeConfig.get('minimax.maxInputTokens') || 16000;
     }
     return 28000; // Ollama default
 }
@@ -247,7 +247,7 @@ async function callOllamaForFacts(userMessage, agentResponse, actorType = 'user'
         .replace('{{ACTOR_TYPE}}', actorType);
 
     return llmService.chatJSON(systemPrompt, userPrompt, {
-        maxTokens: 1000,
+        maxTokens: 2000,
         timeout: runtimeConfig.get('factExtraction.timeout'),
         purpose: `${actorType}_fact_extract`,
     });
@@ -382,7 +382,7 @@ async function extractAndDedup(userMessage, agentResponse, existingMemories = ne
     const fitted = fitToContextWindow(COMBINED_SYSTEM_PROMPT, userPrompt);
 
     const result = await llmService.chatJSON(fitted.systemPrompt, fitted.userPrompt, {
-        maxTokens: getMaxInputTokens() < 2000 ? 500 : 2000,
+        maxTokens: 4000,
         timeout: runtimeConfig.get('factExtraction.timeout') * 2,
         purpose: 'combined_extract_dedup',
     });
@@ -451,7 +451,7 @@ async function extractAndDedupBatch(exchanges, existingMemories = new Map()) {
     const fitted = fitToContextWindow(COMBINED_SYSTEM_PROMPT, userPrompt);
 
     const result = await llmService.chatJSON(fitted.systemPrompt, fitted.userPrompt, {
-        maxTokens: getMaxInputTokens() < 2000 ? 500 : 2000,
+        maxTokens: 4000,
         timeout: runtimeConfig.get('factExtraction.timeout') * 3, // more time for batch
         purpose: 'batch_extract_dedup',
     });

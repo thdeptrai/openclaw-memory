@@ -79,7 +79,7 @@ async function callMiniMaxProvider(messages, options = {}) {
         },
         body: JSON.stringify({
             model,
-            max_tokens: options.maxTokens || 4000,
+            max_tokens: options.maxTokens || 2000,
             system: systemPrompt || 'You are a helpful assistant.',
             messages: anthropicMessages,
         }),
