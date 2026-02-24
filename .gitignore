@@ -1,0 +1,45 @@
+# ============ Environment & Secrets ============
+.env
+.env.local
+.env.production
+.env.*.local
+
+# ============ Dependencies ============
+node_modules/
+package-lock.json
+
+# ============ Build outputs ============
+dist/
+build/
+*.tsbuildinfo
+
+# ============ Logs ============
+*.log
+npm-debug.log*
+
+# ============ Docker volumes ============
+postgres_data/
+qdrant_data/
+
+# ============ OS files ============
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ============ IDE ============
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ============ Large data files ============
+dataset-*.json
+
+# ============ Test artifacts ============
+coverage/
+.nyc_output/
+
+# ============ Gemini/Agent workspace ============
+.gemini/
+.agent/
+_agent/

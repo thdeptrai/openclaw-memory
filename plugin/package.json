@@ -1,0 +1,24 @@
+{
+    "name": "@memolo/openclaw-plugin",
+    "version": "0.1.0",
+    "type": "module",
+    "description": "Memolo — Long-term memory plugin for OpenClaw agents. Stores, recalls, and manages agent memories via a self-hosted memory server with PostgreSQL, Qdrant, and Ollama.",
+    "license": "MIT",
+    "keywords": [
+        "openclaw",
+        "plugin",
+        "memory",
+        "memolo",
+        "long-term-memory",
+        "ai-agents",
+        "shared-memory"
+    ],
+    "dependencies": {
+        "@sinclair/typebox": "0.34.47"
+    },
+    "openclaw": {
+        "extensions": [
+            "./index.ts"
+        ]
+    }
+}

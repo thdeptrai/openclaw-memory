@@ -1,0 +1,85 @@
+{
+    "id": "memolo",
+    "kind": "memory",
+    "uiHints": {
+        "serverUrl": {
+            "label": "Memory Server URL",
+            "placeholder": "http://localhost:7437",
+            "help": "URL of the Memolo memory server (supports ${MEMOLO_SERVER_URL})"
+        },
+        "agentId": {
+            "label": "Agent ID",
+            "placeholder": "my-agent",
+            "help": "Unique identifier for this agent"
+        },
+        "apiKey": {
+            "label": "API Key",
+            "sensitive": true,
+            "placeholder": "${MEMOLO_API_KEY}",
+            "help": "API key for authentication (supports ${MEMOLO_API_KEY} env var)"
+        },
+        "agentName": {
+            "label": "Agent Name",
+            "placeholder": "My Agent",
+            "help": "Human-readable agent name"
+        },
+        "autoCapture": {
+            "label": "Auto-Capture",
+            "help": "Automatically store conversation exchanges after each agent turn"
+        },
+        "autoRecall": {
+            "label": "Auto-Recall",
+            "help": "Automatically inject relevant memories before each agent turn"
+        },
+        "topK": {
+            "label": "Top K Results",
+            "placeholder": "10",
+            "help": "Maximum number of memories to retrieve during auto-recall"
+        },
+        "includeOtherAgents": {
+            "label": "Include Other Agents",
+            "help": "Include memories from other agents during recall (cross-agent memory)"
+        },
+        "tags": {
+            "label": "Default Tags",
+            "advanced": true,
+            "help": "Comma-separated default tags to attach to stored memories"
+        }
+    },
+    "configSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+            "serverUrl": {
+                "type": "string"
+            },
+            "apiKey": {
+                "type": "string"
+            },
+            "agentId": {
+                "type": "string"
+            },
+            "agentName": {
+                "type": "string"
+            },
+            "autoCapture": {
+                "type": "boolean"
+            },
+            "autoRecall": {
+                "type": "boolean"
+            },
+            "topK": {
+                "type": "number"
+            },
+            "includeOtherAgents": {
+                "type": "boolean"
+            },
+            "tags": {
+                "type": "string"
+            }
+        },
+        "required": [
+            "agentId"
+        ]
+    }
+}

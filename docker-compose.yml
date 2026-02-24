@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: memolo-postgres
+    environment:
+      POSTGRES_USER: ${PG_USER:-openclaw}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-openclaw_secret}
+      POSTGRES_DB: ${PG_DATABASE:-openclaw_memory}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${PG_USER:-openclaw} -d ${PG_DATABASE:-openclaw_memory}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: memolo-qdrant
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  memolo:
+    build: ./server
+    container_name: memolo-server
+    ports:
+      - "${PORT:-7437}:${PORT:-7437}"
+    volumes:
+      - ./server/src:/app/src
+      - ./server/public:/app/public
+    environment:
+      PORT: ${PORT:-7437}
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: ${PG_USER:-openclaw}
+      PG_PASSWORD: ${PG_PASSWORD:-openclaw_secret}
+      PG_DATABASE: ${PG_DATABASE:-openclaw_memory}
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-qwen3-embedding:8b}
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen2.5:7b}
+      OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-180000}
+      MEMOLO_MASTER_KEY: ${MEMOLO_MASTER_KEY:-}
+      LLM_PROVIDER: ${LLM_PROVIDER:-minimax}
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
+      MINIMAX_MODEL: ${MINIMAX_MODEL:-MiniMax-M2.5}
+      MINIMAX_BASE_URL: ${MINIMAX_BASE_URL:-https://api.minimax.io/anthropic/v1/messages}
+      SUMMARIZE_AFTER_EXCHANGES: ${SUMMARIZE_AFTER_EXCHANGES:-5}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-4096}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  postgres_data:
+  qdrant_data:

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memolo Dashboard</title>
+  <meta name="description" content="Memolo — Shared Memory Dashboard for AI Agents">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+</head>
+
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="logo-icon">🧠</div>
+          <div>
+            <h1>Memolo</h1>
+            <span class="version">Memory System v2.0</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+          <span class="icon">📊</span> Dashboard
+        </div>
+        <div class="nav-item" data-page="conversations" onclick="showPage('conversations')">
+          <span class="icon">💬</span> Conversations
+          <span class="badge" id="nav-conv-count">0</span>
+        </div>
+        <div class="nav-item" data-page="agents" onclick="showPage('agents')">
+          <span class="icon">🤖</span> Agents
+          <span class="badge" id="nav-agent-count">0</span>
+        </div>
+        <div class="nav-item" data-page="memories" onclick="showPage('memories')">
+          <span class="icon">💾</span> Memories
+          <span class="badge" id="nav-memory-count">0</span>
+        </div>
+        <div class="nav-item" data-page="knowledge" onclick="showPage('knowledge')">
+          <span class="icon">📚</span> Knowledge Base
+        </div>
+        <div class="nav-item" data-page="logs" onclick="showPage('logs')">
+          <span class="icon">📋</span> Live Logs
+          <span class="badge" id="nav-log-count">•</span>
+        </div>
+        <div class="nav-item" data-page="recall" onclick="showPage('recall')">
+          <span class="icon">🔍</span> Recall Test
+        </div>
+        <div class="nav-item" data-page="settings" onclick="showPage('settings')">
+          <span class="icon">⚙️</span> Settings
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="health-indicator">
+          <span class="health-dot" id="health-dot"></span>
+          <span id="health-text">Checking...</span>
+        </div>
+        <div class="sse-indicator" id="sse-status">
+          <span class="sse-dot"></span>
+          <span>SSE: connecting...</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+
+      <!-- ==================== DASHBOARD PAGE ==================== -->
+      <div id="page-dashboard" class="page active">
+        <div class="page-header">
+          <h2>Dashboard</h2>
+          <p>System overview — real-time updates via SSE</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">💬</div>
+            <div class="stat-body">
+              <div class="stat-label">Total Exchanges</div>
+              <div class="stat-value" id="stat-exchanges">—</div>
+              <div class="stat-detail" id="stat-exchanges-detail">User ↔ Agent conversations stored</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🧠</div>
+            <div class="stat-body">
+              <div class="stat-label">Active Memories</div>
+              <div class="stat-value" id="stat-memories">—</div>
+              <div class="stat-detail" id="stat-memories-detail">Facts, decisions & preferences extracted</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🤖</div>
+            <div class="stat-body">
+              <div class="stat-label">Registered Agents</div>
+              <div class="stat-value" id="stat-agents">—</div>
+              <div class="stat-detail" id="stat-agents-detail">AI agents connected to Memolo</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">❤️</div>
+            <div class="stat-body">
+              <div class="stat-label">System Health</div>
+              <div class="stat-value green" id="stat-health">—</div>
+              <div class="stat-detail" id="stat-health-detail">PostgreSQL · Qdrant · Ollama</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panels -->
+        <div class="panels-grid">
+          <!-- Activity Feed -->
+          <div class="panel panel-full">
+            <div class="panel-header">
+              <h3>⚡ Activity Feed <span class="live-badge">LIVE</span></h3>
+              <div class="panel-actions">
+                <button class="btn" onclick="clearActivityFeed()">Clear</button>
+              </div>
+            </div>
+            <div class="panel-body" id="activity-feed">
+              <div class="empty-state"><span class="icon">⚡</span> Waiting for activity...</div>
+            </div>
+          </div>
+
+          <!-- Agents Panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3>🤖 Agents <span class="count" id="agent-panel-count"></span></h3>
+            </div>
+            <div class="panel-body" id="agents-list">
+              <div class="empty-state"><span class="icon">🤖</span> Loading agents...</div>
+            </div>
+          </div>
+
+          <!-- Recent Memories Panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3>💾 Recent Memories</h3>
+              <input class="search-input" id="dash-memory-search" placeholder="Search memories..."
+                oninput="searchDashMemories(this.value)">
+            </div>
+            <div class="panel-body" id="dash-memories-list">
+              <div class="empty-state"><span class="icon">💾</span> Loading memories...</div>
+            </div>
+          </div>
+
+          <!-- Live Logs Panel -->
+          <div class="panel panel-full log-panel">
+            <div class="panel-header">
+              <h3>📋 Live Logs</h3>
+              <div class="panel-actions">
+                <button class="btn" onclick="clearLogs()">Clear</button>
+                <div class="tab-bar">
+                  <button class="tab-btn active" onclick="filterLogs('all', this)">All</button>
+                  <button class="tab-btn" onclick="filterLogs('info', this)">Info</button>
+                  <button class="tab-btn" onclick="filterLogs('warn', this)">Warn</button>
+                  <button class="tab-btn" onclick="filterLogs('error', this)">Error</button>
+                </div>
+              </div>
+            </div>
+            <div class="panel-body" id="dash-logs-list">
+              <div class="empty-state"><span class="icon">📋</span> Connecting to event stream...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== CONVERSATIONS PAGE ==================== -->
+      <div id="page-conversations" class="page">
+        <div class="page-header">
+          <h2>Conversations</h2>
+          <p>Browse conversations and exchanges — click to view thread</p>
+        </div>
+        <div class="conv-layout">
+          <!-- Conversation List -->
+          <div class="conv-list-panel panel">
+            <div class="panel-header">
+              <h3>💬 All Conversations</h3>
+              <input class="search-input" id="conv-search" placeholder="Search..."
+                oninput="filterConversations(this.value)">
+            </div>
+            <div class="panel-body" id="conv-list">
+              <div class="empty-state"><span class="icon">💬</span> Loading...</div>
+            </div>
+          </div>
+          <!-- Thread View -->
+          <div class="conv-thread-panel panel">
+            <div class="panel-header">
+              <h3 id="conv-thread-title">Select a conversation</h3>
+              <div class="panel-actions" id="conv-thread-actions" style="display:none">
+                <span class="conv-meta" id="conv-thread-meta"></span>
+              </div>
+            </div>
+            <div class="panel-body thread-body" id="conv-thread">
+              <div class="empty-state"><span class="icon">👈</span> Select a conversation to view exchanges</div>
+            </div>
+            <!-- Conversation summaries section -->
+            <div class="conv-summary-section" id="conv-summary" style="display:none">
+              <div class="conv-summary-header">📋 Conversation Summary</div>
+              <div id="conv-summary-content"></div>
+            </div>
+            <!-- Extracted knowledge section -->
+            <div class="conv-knowledge-section" id="conv-knowledge" style="display:none">
+              <div class="conv-knowledge-header">🧠 Extracted Knowledge</div>
+              <div id="conv-knowledge-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== AGENTS PAGE ==================== -->
+      <div id="page-agents" class="page">
+        <div class="page-header">
+          <h2>Agents</h2>
+          <p>All registered AI agents and their activity</p>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <h3>🤖 All Agents</h3>
+          </div>
+          <div class="panel-body" id="agents-full-list" style="max-height: 600px;">
+            <div class="empty-state"><span class="icon">🤖</span> Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== MEMORIES PAGE ==================== -->
+      <div id="page-memories" class="page">
+        <div class="page-header">
+          <h2>Memories</h2>
+          <p>All stored memories across agents — click to expand details</p>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <h3>💾 Memory Store</h3>
+            <div class="panel-actions">
+              <input class="search-input" id="memory-search" placeholder="Search all memories..." style="width: 260px;"
+                oninput="debounceSearchMemories(this.value)">
+              <div class="tab-bar">
+                <button class="tab-btn active" onclick="filterMemoryType('all', this)">All</button>
+                <button class="tab-btn" onclick="filterMemoryType('fact', this)">✅ Facts</button>
+                <button class="tab-btn" onclick="filterMemoryType('decision', this)">🔮 Decisions</button>
+                <button class="tab-btn" onclick="filterMemoryType('preference', this)">⭐ Preferences</button>
+                <button class="tab-btn" onclick="filterMemoryType('exchange', this)">💬 Exchanges</button>
+              </div>
+              <div class="tab-bar" style="margin-left: 8px; border-left: 1px solid var(--border); padding-left: 8px;">
+                <button class="tab-btn active" onclick="filterMemoryActor('all', this)">All Sources</button>
+                <button class="tab-btn" onclick="filterMemoryActor('user', this)">👤 User</button>
+                <button class="tab-btn" onclick="filterMemoryActor('assistant', this)">🤖 Assistant</button>
+              </div>
+              <div class="tab-bar" style="margin-left: 8px; border-left: 1px solid var(--border); padding-left: 8px;">
+                <button class="tab-btn active" onclick="filterMemoryStatus('all', this)">All Status</button>
+                <button class="tab-btn" onclick="filterMemoryStatus('active', this)">● Active</button>
+                <button class="tab-btn" onclick="filterMemoryStatus('superseded', this)">🔄 Superseded</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body" id="memories-full-list" style="max-height: 600px;">
+            <div class="empty-state"><span class="icon">💾</span> Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== KNOWLEDGE PAGE ==================== -->
+      <div id="page-knowledge" class="page">
+        <div class="page-header">
+          <h2>Knowledge Base</h2>
+          <p>Consolidated knowledge from all agents</p>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <h3>📚 Knowledge Entries</h3>
+            <div class="panel-actions">
+              <input class="search-input" id="knowledge-search" placeholder="Search knowledge..."
+                oninput="searchKnowledge(this.value)">
+              <button class="btn btn-primary" onclick="runConsolidation()" id="btn-consolidate">🔄 Run
+                Consolidation</button>
+            </div>
+          </div>
+          <div class="panel-body" id="knowledge-list" style="max-height: 600px;">
+            <div class="empty-state"><span class="icon">📚</span> Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== LOGS PAGE ==================== -->
+      <div id="page-logs" class="page">
+        <div class="page-header">
+          <h2>Server Logs</h2>
+          <p>Real-time server logs with source tags</p>
+        </div>
+        <div class="panel log-panel">
+          <div class="panel-header">
+            <h3>📋 Full Logs</h3>
+            <div class="panel-actions">
+              <button class="btn" onclick="clearLogs()">Clear</button>
+              <div class="tab-bar">
+                <button class="tab-btn active" onclick="filterLogs('all', this)">All</button>
+                <button class="tab-btn" onclick="filterLogs('info', this)">Info</button>
+                <button class="tab-btn" onclick="filterLogs('warn', this)">Warn</button>
+                <button class="tab-btn" onclick="filterLogs('error', this)">Error</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body" id="logs-full-list">
+            <div class="empty-state"><span class="icon">📋</span> Connecting...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== SETTINGS PAGE ==================== -->
+      <!-- ==================== RECALL PLAYGROUND ==================== -->
+      <div id="page-recall" class="page">
+        <div class="page-header">
+          <h2>Recall Playground</h2>
+          <p>Test memory recall — enter a query to see what the system retrieves</p>
+        </div>
+
+        <div class="recall-input-area">
+          <div class="recall-query-row">
+            <input type="text" id="recall-query" class="recall-query-input"
+              placeholder="Enter your query... e.g. 'What coding style does the user prefer?'" autocomplete="off">
+            <button class="btn btn-primary recall-btn" id="recall-btn" onclick="executeRecall()">🔍 Recall</button>
+          </div>
+          <div class="recall-filters">
+            <div class="recall-filter">
+              <label>Agent ID</label>
+              <input type="text" id="recall-agent" class="recall-filter-input" placeholder="All agents">
+            </div>
+            <div class="recall-filter">
+              <label>Conversation ID</label>
+              <input type="text" id="recall-conv" class="recall-filter-input" placeholder="All conversations">
+            </div>
+            <div class="recall-filter">
+              <label>Topic</label>
+              <input type="text" id="recall-topic" class="recall-filter-input" placeholder="Auto-detect">
+            </div>
+            <div class="recall-filter">
+              <label>Limit</label>
+              <input type="number" id="recall-limit" class="recall-filter-input" value="10" min="1" max="50">
+            </div>
+            <div class="recall-filter">
+              <label>Format</label>
+              <select id="recall-format" class="recall-filter-input">
+                <option value="raw">Raw (structured)</option>
+                <option value="context">Context (for LLM)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div id="recall-results" class="recall-results">
+          <div class="empty-state"><span class="icon">🔍</span> Enter a query above to test memory recall</div>
+        </div>
+
+        <!-- Raw JSON viewer -->
+        <div id="recall-raw-json" class="recall-raw-json" style="display:none">
+          <div class="panel-header">
+            <h3>📦 Raw JSON Response</h3>
+            <button class="btn" onclick="toggleRawJson()">Hide JSON</button>
+          </div>
+          <pre id="recall-json-content" class="recall-json-pre"></pre>
+        </div>
+      </div>
+
+      <div id="page-settings" class="page">
+        <div class="page-header">
+          <h2>Settings</h2>
+          <p>Runtime configuration — changes take effect immediately without restart</p>
+        </div>
+
+        <!-- Memolo System API Keys Panel -->
+        <div class="api-keys-panel">
+          <div class="api-keys-header">
+            <div class="api-keys-title">
+              <span class="api-keys-icon">🔑</span>
+              <div>
+                <h3>Memolo API Keys</h3>
+                <p>Authentication keys for agents connecting to this Memolo server</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Master Key Status -->
+          <div class="api-keys-grid" id="master-key-section">
+            <div class="api-key-card">
+              <div class="api-key-card-header">
+                <div class="api-key-card-title">
+                  <span class="api-key-card-icon">👑</span>
+                  <div>
+                    <div class="api-key-card-name">Master Key</div>
+                    <div class="api-key-card-desc">Admin key (MEMOLO_MASTER_KEY) — full access to all API endpoints
+                    </div>
+                  </div>
+                </div>
+                <div class="api-key-status" id="master-key-status">
+                  <span class="api-key-status-dot"></span>
+                  <span>Checking...</span>
+                </div>
+              </div>
+              <div class="api-key-card-footer">
+                <span class="api-keys-security-note">🔒 Set via <code>MEMOLO_MASTER_KEY</code> environment variable.
+                  When not set, auth is disabled (dev mode).</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Agent Keys Section -->
+          <div class="api-keys-grid">
+            <div class="api-key-card">
+              <div class="api-key-card-header">
+                <div class="api-key-card-title">
+                  <span class="api-key-card-icon">🤖</span>
+                  <div>
+                    <div class="api-key-card-name">Agent API Keys</div>
+                    <div class="api-key-card-desc">Per-agent keys generated on registration — manage on the <a href="#"
+                        onclick="showPage('agents'); return false;" class="api-key-link"
+                        style="font-size: inherit;">Agents page</a></div>
+                  </div>
+                </div>
+                <div class="api-key-status" id="agent-keys-count" style="color: var(--text-muted)">
+                  <span>Loading...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button class="btn btn-primary" onclick="saveSettings()">💾 Save All Changes</button>
+          <button class="btn" onclick="resetAllSettings()">🔄 Reset to Defaults</button>
+        </div>
+        <div id="settings-container">
+          <div class="empty-state"><span class="icon">⚙️</span> Loading settings...</div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <script src="/app.js"></script>
+</body>
+
+</html>
