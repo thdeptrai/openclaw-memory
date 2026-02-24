@@ -123,10 +123,17 @@ Types of Information to Remember:
 2. Important Personal Details: names, relationships, important dates
 3. Plans and Intentions: upcoming events, goals, plans shared
 4. Activity Preferences: dining, travel, hobbies, services
-5. Health/Wellness: dietary restrictions, fitness, wellness info
-6. Professional Details: job titles, work habits, career goals
-7. Technical Preferences: preferred tools, frameworks, coding styles, IDE settings
-8. Miscellaneous: favorite books, movies, brands, other details
+5. Professional Details: job titles, work habits, career goals
+6. Technical Preferences: preferred tools, frameworks, coding styles, IDE settings
+7. Decisions Made: concrete choices the user has made
+
+DO NOT EXTRACT:
+- Questions the agent asks the user (e.g., "Bạn muốn dùng framework nào?" is NOT a fact)
+- Agent's suggestions or recommendations — those belong in agent_facts
+- Hypothetical or conditional statements ("nếu...", "có thể...", "if...")
+- Greetings, filler, acknowledgments ("ok", "được", "cảm ơn")
+- Information that is ASKED but not ANSWERED
+- Rephrased versions of the agent's words — only extract what the USER said
 
 CRITICAL RULES:
 1. Each fact MUST be a COMPLETE sentence — understandable WITHOUT the conversation.
@@ -138,7 +145,12 @@ CRITICAL RULES:
 7. Return ONLY valid JSON — no markdown, no explanations.
 8. ONE FACT = ONE ATOMIC STATEMENT. Never combine multiple pieces of information into a single fact.
    BAD: "User likes TypeScript and lives in Hanoi" (2 facts combined)
-   GOOD: ["User thích dùng TypeScript", "User đang sống ở Hà Nội"] (2 separate facts)`;
+   GOOD: ["User thích dùng TypeScript", "User đang sống ở Hà Nội"] (2 separate facts)
+
+EXAMPLES OF WRONG EXTRACTIONS:
+- Agent asks: "Bạn thích framework nào?" → User: "hmm" → NO FACTS (user didn't answer)
+- Agent says: "Tôi khuyên dùng PostgreSQL" → NOT a user fact (this is agent's recommendation)
+- Agent asks: "Bạn đã cài Docker chưa?" → NOT a fact (this is a question, not stated info)`;
 
 // AGENT facts — extracts info about the AGENT/ASSISTANT only (mem0 pattern)
 const AGENT_FACT_SYSTEM_PROMPT = `You are an Assistant Information Organizer, specialized in accurately storing facts, preferences, and characteristics about the AI assistant from conversations.
@@ -314,11 +326,24 @@ const COMBINED_SYSTEM_PROMPT = `You are a Memory Manager that performs TWO tasks
 2. DEDUPLICATE: compare extracted facts against existing memories and decide actions
 
 EXTRACTION RULES:
-- Extract facts about the USER from the user's messages (preferences, personal info, plans, etc.)
-- Extract facts about the ASSISTANT from the agent's responses (decisions, recommendations, knowledge)
-- Each fact = ONE atomic statement, self-contained
+- Extract facts about the USER from the user's messages (preferences, personal info, plans, decisions)
+- Extract facts about the ASSISTANT from the agent's responses (decisions made, recommendations given, solutions provided)
+- Each fact = ONE atomic statement, self-contained, understandable without context
 - Keep ORIGINAL LANGUAGE (Vietnamese → Vietnamese)
-- Only extract EXPLICITLY stated information
+- Only extract EXPLICITLY stated information — never infer or assume
+
+DO NOT EXTRACT (CRITICAL):
+- Questions asked by either party — a question is NOT a fact
+  BAD: "Agent hỏi user muốn dùng framework nào" (this is a question)
+  BAD: "User hỏi về cách cài đặt Docker" (this is a question, not a preference)
+- Hypothetical or conditional statements ("nếu...", "có thể...", "maybe...")
+- Greetings, filler, acknowledgments ("ok", "hi", "cảm ơn", "được rồi")
+- Partial/unanswered information — only extract confirmed statements
+- Rephrased versions of the other party's words
+- Procedural steps the agent is explaining (e.g., "chạy lệnh npm install")
+
+USER FACTS = things the USER stated about themselves, their preferences, their decisions
+AGENT FACTS = concrete decisions/recommendations the AGENT made (NOT questions the agent asked)
 
 DEDUP RULES:
 - For each extracted fact, compare with EXISTING MEMORIES
