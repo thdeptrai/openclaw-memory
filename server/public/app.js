@@ -1023,6 +1023,7 @@ function renderSettingsForm() {
 
     const groupIcons = {
         'LLM Models': '🤖',
+        'Embeddings': '🔗',
         'Feature Toggles': '🔀',
         'Timeouts': '⏱️',
         'Memory': '🧠',
@@ -1031,11 +1032,6 @@ function renderSettingsForm() {
         'Prompts': '📝',
     };
 
-    // Get current provider info for the status banner
-    const currentProvider = (settingsModified['llm.provider'] !== undefined ? settingsModified['llm.provider'] : settingsData['llm.provider']?.value) || 'ollama';
-    const currentModel = currentProvider === 'minimax'
-        ? (settingsModified['minimax.model'] !== undefined ? settingsModified['minimax.model'] : settingsData['minimax.model']?.value) || 'MiniMax-M2.5'
-        : (settingsModified['ollama.chatModel'] !== undefined ? settingsModified['ollama.chatModel'] : settingsData['ollama.chatModel']?.value) || 'qwen2.5:7b';
 
     let html = '';
     for (const [groupName, items] of Object.entries(groups)) {
@@ -1045,15 +1041,13 @@ function renderSettingsForm() {
 
         // Show Active LLM status banner for LLM Models group
         if (groupName === 'LLM Models') {
-            const providerIcon = currentProvider === 'minimax' ? '☁️' : '🖥️';
-            const providerLabel = currentProvider === 'minimax' ? 'MiniMax (Cloud)' : 'Ollama (Local)';
-            const providerColor = currentProvider === 'minimax' ? '#6366f1' : '#10b981';
-            html += `<div class="llm-status-banner" style="background: linear-gradient(135deg, ${providerColor}22, ${providerColor}11); border: 1px solid ${providerColor}44; border-radius: 12px; padding: 16px 20px; margin: 12px 16px 4px;">`;
+            const currentModel = (settingsModified['minimax.model'] !== undefined ? settingsModified['minimax.model'] : settingsData['minimax.model']?.value) || 'MiniMax-M2.5';
+            html += `<div class="llm-status-banner" style="background: linear-gradient(135deg, #6366f122, #6366f111); border: 1px solid #6366f144; border-radius: 12px; padding: 16px 20px; margin: 12px 16px 4px;">`;
             html += `<div style="display: flex; align-items: center; gap: 12px;">`;
-            html += `<div style="font-size: 28px;">${providerIcon}</div>`;
+            html += `<div style="font-size: 28px;">☁️</div>`;
             html += `<div>`;
-            html += `<div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: ${providerColor}; font-weight: 600; margin-bottom: 2px;">Active LLM Provider</div>`;
-            html += `<div style="font-size: 18px; font-weight: 700; color: var(--text-primary);">${providerLabel}</div>`;
+            html += `<div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6366f1; font-weight: 600; margin-bottom: 2px;">Active LLM Provider</div>`;
+            html += `<div style="font-size: 18px; font-weight: 700; color: var(--text-primary);">MiniMax (Cloud)</div>`;
             html += `<div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Model: <strong>${currentModel}</strong></div>`;
             html += `</div></div></div>`;
         }
@@ -1064,17 +1058,10 @@ function renderSettingsForm() {
             const isModified = settingsModified[item.key] !== undefined;
             const isDefault = item.value === item.default;
 
-            // Dim irrelevant provider settings
-            const isOllamaField = item.key.startsWith('ollama.');
-            const isMiniMaxField = item.key.startsWith('minimax.');
-            const isDimmed = (currentProvider === 'minimax' && isOllamaField && item.key !== 'ollama.embedModel' && item.key !== 'ollama.baseUrl')
-                || (currentProvider === 'ollama' && isMiniMaxField);
-
-            html += `<div class="setting-row${isModified ? ' modified' : ''}${isDimmed ? ' dimmed' : ''}">`;
+            html += `<div class="setting-row${isModified ? ' modified' : ''}">`;
             html += `<div class="setting-info">`;
             html += `<div class="setting-label">${item.label}`;
             if (!isDefault) html += ` <span class="setting-custom-badge">custom</span>`;
-            if (isDimmed) html += ` <span class="setting-inactive-badge">inactive</span>`;
             html += `</div>`;
             html += `<div class="setting-description">${item.description || ''}</div>`;
             html += `</div>`;
@@ -1090,8 +1077,7 @@ function renderSettingsForm() {
                 const val = settingsModified[item.key] !== undefined ? settingsModified[item.key] : item.value;
                 html += `<select class="setting-select" onchange="onSettingChange('${item.key}', this.value)">`;
                 for (const opt of item.options) {
-                    const label = opt === 'ollama' ? '🖥️ Ollama (Local)' : opt === 'minimax' ? '☁️ MiniMax (Cloud)' : opt;
-                    html += `<option value="${opt}" ${val === opt ? 'selected' : ''}>${label}</option>`;
+                    html += `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`;
                 }
                 html += `</select>`;
             } else if (item.type === 'number') {
