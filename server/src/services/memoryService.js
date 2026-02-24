@@ -154,28 +154,9 @@ class MemoryService {
         const importanceScore = scoreContentImportance(userMessage, agentResponse);
         const contentTags = extractContentTags(userMessage, agentResponse);
 
-        // Generate embedding for the exchange
-        const textForEmbedding = `User: ${userMessage}\nAgent: ${agentResponse}`;
-        try {
-            const embedding = await embeddingService.generateEmbedding(textForEmbedding);
-
-            // Index in Qdrant with quality-scored importance + topic context
-            await vectorStore.upsertVector(exchange.id, embedding, {
-                memory_id: exchange.id,
-                agent_id: agentId,
-                type: 'exchange',
-                content: textForEmbedding.substring(0, 500),
-                user_message: userMessage.substring(0, 300),
-                conversation_id: conversationId,
-                importance_score: importanceScore,
-                content_tags: contentTags,
-                topic: conversationTopic,
-                scope: 'unknown',
-                created_at: new Date().toISOString(),
-            });
-        } catch (err) {
-            console.warn('⚠️ Embedding/indexing failed, exchange still stored:', err.message);
-        }
+        // Mem0 style: Do NOT embed raw exchanges into Qdrant.
+        // Only extracted facts get embedded (via batchProcessor → memoryDeduplicator).
+        // Exchanges are kept in Postgres only (for history/audit).
 
         // === Real-time Fact Extraction + Dedup (via batch processor) ===
         if (runtimeConfig.get('factExtraction.enabled')) {
@@ -414,9 +395,10 @@ class MemoryService {
             }
 
             // Mem0-style: exclude raw exchanges — only return extracted facts
+            // Note: after re-ranking, results are flat objects (r.type, not r.payload.type)
             const FACT_TYPES = new Set(['fact', 'decision', 'insight', 'preference']);
             rankedResults = rankedResults.filter(r => {
-                const memType = (r.payload && r.payload.type) || 'exchange';
+                const memType = r.type || 'exchange';
                 return FACT_TYPES.has(memType);
             });
 
