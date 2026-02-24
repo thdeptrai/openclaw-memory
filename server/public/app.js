@@ -1027,6 +1027,8 @@ function renderSettingsForm() {
         'Timeouts': '⏱️',
         'Memory': '🧠',
         'Scheduler': '📅',
+        'Batch': '📦',
+        'Prompts': '📝',
     };
 
     // Get current provider info for the status banner
@@ -1102,6 +1104,22 @@ function renderSettingsForm() {
                 html += `onchange="onSettingChange('${item.key}', parseFloat(this.value))">`;
                 html += unit;
                 html += `</div>`;
+            } else if (item.type === 'textarea') {
+                const val = settingsModified[item.key] !== undefined ? settingsModified[item.key] : item.value;
+                const charCount = (val || '').length;
+                html += `<div class="prompt-editor-wrap">`;
+                html += `<textarea class="setting-textarea" rows="12" `;
+                html += `onchange="onSettingChange('${item.key}', this.value)" `;
+                html += `oninput="this.parentElement.querySelector('.char-count').textContent = this.value.length + ' chars'">`;
+                html += escHtml(val || '');
+                html += `</textarea>`;
+                html += `<div class="prompt-editor-footer">`;
+                html += `<span class="char-count">${charCount} chars</span>`;
+                if (!isDefault) {
+                    html += `<button class="btn-reset-prompt" onclick="resetSingleSetting('${item.key}')" title="Reset to default prompt">↩ Reset to Default</button>`;
+                }
+                html += `</div>`;
+                html += `</div>`;
             } else {
                 const val = settingsModified[item.key] !== undefined ? settingsModified[item.key] : item.value;
                 // Mask API keys
@@ -1111,8 +1129,8 @@ function renderSettingsForm() {
                 html += `${inputType === 'password' ? ' autocomplete="off"' : ''}>`;
             }
 
-            // Reset single setting button
-            if (!isDefault) {
+            // Reset single setting button (skip for textarea — they have their own)
+            if (!isDefault && item.type !== 'textarea') {
                 html += `<button class="btn-reset-single" onclick="resetSingleSetting('${item.key}')" title="Reset to default: ${item.default}">↩</button>`;
             }
 

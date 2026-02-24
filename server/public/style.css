@@ -2900,3 +2900,68 @@ body,
 .panel-header {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
 }
+
+/* ============ PROMPT EDITOR (Settings page) ============ */
+
+.prompt-editor-wrap {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.setting-textarea {
+  width: 100%;
+  min-height: 200px;
+  max-height: 500px;
+  padding: 14px 16px;
+  background: var(--bg-inset, #010409);
+  border: 1px solid var(--border-primary, #30363d);
+  border-radius: 10px;
+  color: var(--text-primary, #e6edf3);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  resize: vertical;
+  tab-size: 2;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.setting-textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue, #58a6ff);
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+}
+
+.prompt-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 0;
+}
+
+.prompt-editor-footer .char-count {
+  font-size: 11px;
+  color: var(--text-muted, #484f58);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.btn-reset-prompt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid var(--accent-orange, #d29922);
+  border-radius: 6px;
+  color: var(--accent-orange, #d29922);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-reset-prompt:hover {
+  background: rgba(210, 153, 34, 0.15);
+  box-shadow: 0 0 0 2px rgba(210, 153, 34, 0.1);
+}

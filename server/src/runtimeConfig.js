@@ -56,6 +56,25 @@ const defaults = {
     'minimax.maxInputTokens': 1600,  // ~2013 total - 400 output reserve
 };
 
+// Prompt defaults loaded lazily from factExtractor (avoids circular require)
+let _promptDefaults = null;
+function getPromptDefaults() {
+    if (!_promptDefaults) {
+        const { USER_FACT_SYSTEM_PROMPT, AGENT_FACT_SYSTEM_PROMPT, COMBINED_SYSTEM_PROMPT } = require('./services/factExtractor');
+        _promptDefaults = {
+            'prompt.userFactSystem': USER_FACT_SYSTEM_PROMPT,
+            'prompt.agentFactSystem': AGENT_FACT_SYSTEM_PROMPT,
+            'prompt.combinedSystem': COMBINED_SYSTEM_PROMPT,
+        };
+        // Merge into defaults and store
+        Object.assign(defaults, _promptDefaults);
+        for (const [k, v] of Object.entries(_promptDefaults)) {
+            if (store[k] === undefined) store[k] = v;
+        }
+    }
+    return _promptDefaults;
+}
+
 // Mutable runtime store
 const store = { ...defaults };
 
@@ -92,6 +111,10 @@ const settingsMeta = {
     'batch.intervalMs': { label: 'Batch Interval', group: 'Batch', type: 'number', min: 1000, max: 60000, unit: 'ms', description: 'How often to flush the batch queue and send to LLM' },
     'batch.maxSize': { label: 'Max Batch Size', group: 'Batch', type: 'number', min: 1, max: 50, description: 'Maximum exchanges per batch LLM call' },
     'minimax.maxInputTokens': { label: 'MiniMax Input Token Budget', group: 'LLM Models', type: 'number', min: 500, max: 8000, description: 'Max input tokens for MiniMax (context window limit minus output reserve)' },
+
+    'prompt.userFactSystem': { label: 'User Fact Extraction Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for extracting facts about the USER from conversations (Ollama path)' },
+    'prompt.agentFactSystem': { label: 'Agent Fact Extraction Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for extracting facts about the AGENT/ASSISTANT (Ollama path)' },
+    'prompt.combinedSystem': { label: 'Combined Extract+Dedup Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for combined fact extraction + deduplication (MiniMax/batch path)' },
 };
 
 module.exports = {
@@ -101,6 +124,8 @@ module.exports = {
      * @returns {*} current value
      */
     get(key) {
+        // Lazy-load prompt defaults on first prompt access
+        if (key.startsWith('prompt.') && !_promptDefaults) getPromptDefaults();
         return store[key] !== undefined ? store[key] : defaults[key];
     },
 
@@ -133,6 +158,9 @@ module.exports = {
         if (meta.type === 'string' && typeof value !== 'string') {
             return { success: false, error: `${key} must be a string` };
         }
+        if (meta.type === 'textarea' && typeof value !== 'string') {
+            return { success: false, error: `${key} must be a string` };
+        }
 
         store[key] = value;
         return { success: true };
@@ -142,6 +170,8 @@ module.exports = {
      * Get all settings with their metadata and current values
      */
     getAll() {
+        // Ensure prompt defaults are loaded
+        getPromptDefaults();
         const result = {};
         for (const [key, meta] of Object.entries(settingsMeta)) {
             let value = store[key];

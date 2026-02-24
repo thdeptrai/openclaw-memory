@@ -258,7 +258,9 @@ async function extractFacts(userMessage, agentResponse, options = {}) {
 // ============ OLLAMA CALL ============
 
 async function callOllamaForFacts(userMessage, agentResponse, actorType = 'user') {
-    const systemPrompt = actorType === 'agent' ? AGENT_FACT_SYSTEM_PROMPT : USER_FACT_SYSTEM_PROMPT;
+    const systemPrompt = actorType === 'agent'
+        ? runtimeConfig.get('prompt.agentFactSystem') || AGENT_FACT_SYSTEM_PROMPT
+        : runtimeConfig.get('prompt.userFactSystem') || USER_FACT_SYSTEM_PROMPT;
     const userPrompt = FACT_EXTRACTION_USER_TEMPLATE
         .replace('{{USER_MESSAGE}}', userMessage.substring(0, 2000))
         .replace('{{AGENT_RESPONSE}}', agentResponse.substring(0, 2000))
@@ -419,8 +421,9 @@ async function extractAndDedup(userMessage, agentResponse, existingMemories = ne
         .replace('{{AGENT_RESPONSE}}', agentResponse.substring(0, maxMsgChars))
         .replace('{{EXISTING_MEMORIES}}', existingForPrompt);
 
-    // Context window protection
-    const fitted = fitToContextWindow(COMBINED_SYSTEM_PROMPT, userPrompt);
+    // Context window protection — use runtime prompt (editable via Settings)
+    const systemPrompt = runtimeConfig.get('prompt.combinedSystem') || COMBINED_SYSTEM_PROMPT;
+    const fitted = fitToContextWindow(systemPrompt, userPrompt);
 
     const result = await llmService.chatJSON(fitted.systemPrompt, fitted.userPrompt, {
         maxTokens: 4000,
@@ -488,8 +491,9 @@ async function extractAndDedupBatch(exchanges, existingMemories = new Map()) {
         .replace('{{EXCHANGES}}', exchangesText)
         .replace('{{EXISTING_MEMORIES}}', existingForPrompt);
 
-    // Context window protection
-    const fitted = fitToContextWindow(COMBINED_SYSTEM_PROMPT, userPrompt);
+    // Context window protection — use runtime prompt (editable via Settings)
+    const systemPrompt = runtimeConfig.get('prompt.combinedSystem') || COMBINED_SYSTEM_PROMPT;
+    const fitted = fitToContextWindow(systemPrompt, userPrompt);
 
     const result = await llmService.chatJSON(fitted.systemPrompt, fitted.userPrompt, {
         maxTokens: 4000,
@@ -516,5 +520,6 @@ module.exports = {
     fitToContextWindow,
     USER_FACT_SYSTEM_PROMPT,
     AGENT_FACT_SYSTEM_PROMPT,
+    COMBINED_SYSTEM_PROMPT,
 };
 
