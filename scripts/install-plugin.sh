@@ -8,34 +8,40 @@ set -e
 
 REPO="thdeptrai/openclaw-memory"
 BRANCH="master"
-PLUGIN_DIR="/tmp/memolo-plugin-$$"
+INSTALL_DIR="$HOME/.openclaw/plugins/memolo"
 
 echo "🔑 Memolo Plugin Installer"
 echo "=========================="
 
+# Clean previous install
+if [ -d "$INSTALL_DIR" ]; then
+    echo "🔄 Removing previous install..."
+    rm -rf "$INSTALL_DIR"
+fi
+
 # Download plugin files from GitHub
 echo "📥 Downloading plugin from github.com/$REPO..."
-mkdir -p "$PLUGIN_DIR"
-curl -sL "https://github.com/$REPO/archive/$BRANCH.tar.gz" | tar xz -C "$PLUGIN_DIR" --strip-components=2 "openclaw-memory-$BRANCH/plugin"
+mkdir -p "$INSTALL_DIR"
+curl -sL "https://github.com/$REPO/archive/$BRANCH.tar.gz" | tar xz -C "$INSTALL_DIR" --strip-components=2 "openclaw-memory-$BRANCH/plugin"
 
-if [ ! -f "$PLUGIN_DIR/openclaw.plugin.json" ]; then
+if [ ! -f "$INSTALL_DIR/openclaw.plugin.json" ]; then
     echo "❌ Failed to download plugin files"
-    rm -rf "$PLUGIN_DIR"
+    rm -rf "$INSTALL_DIR"
     exit 1
 fi
 
-echo "✅ Downloaded to $PLUGIN_DIR"
-
 # Install dependencies
 echo "📦 Installing dependencies..."
-cd "$PLUGIN_DIR"
+cd "$INSTALL_DIR"
 npm install --production --silent
 cd - > /dev/null
 
-# Install via OpenClaw CLI
-echo "📦 Installing plugin..."
-openclaw plugins install -l "$PLUGIN_DIR"
+echo "✅ Plugin installed to $INSTALL_DIR"
 
-# Cleanup
-rm -rf "$PLUGIN_DIR"
-echo "🎉 Done! Configure the plugin in OpenClaw settings."
+# Install via OpenClaw CLI
+echo "📦 Registering with OpenClaw..."
+openclaw plugins install -l "$INSTALL_DIR"
+
+echo ""
+echo "🎉 Done! Plugin installed at: $INSTALL_DIR"
+echo "💡 To update later, just re-run this script."
