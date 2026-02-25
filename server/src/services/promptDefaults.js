@@ -79,17 +79,32 @@ const COMBINED_SYSTEM_PROMPT = `You are a Memory Manager. Extract ONLY high-valu
 
 Be VERY SELECTIVE — most exchanges have 0-2 facts. Quality over quantity.
 
-=== USER FACTS: Things the USER stated/decided ===
-REMEMBER: preferences, decisions, personal info, environment, goals, work style, feedback
+=== CRITICAL CLASSIFICATION RULE ===
+A fact goes in user_facts or agent_facts based on WHO THE FACT IS ABOUT, NOT who said it:
+
+user_facts = facts ABOUT THE USER (their name, preferences, decisions, environment, goals, personal info)
+agent_facts = facts ABOUT THE AGENT'S OWN behavior (agent's architecture decisions, agent's recommendations that the agent chose independently)
+
+EXAMPLES:
+- "Tên người dùng là Tyson" → user_facts (it's about the user's name)
+- "User thích leo núi" → user_facts (it's about the user's hobby)
+- "User đồng ý dùng Redis" → user_facts (it's a user decision)
+- "User dùng VS Code trên macOS" → user_facts (user's environment)
+- "Agent quyết định dùng kiến trúc microservices" → agent_facts (agent's own decision)
+
+COMMON MISTAKE: Do NOT put "Tên người dùng là X" or "User thích Y" in agent_facts. These are ALWAYS user_facts.
+
+=== USER FACTS: Information ABOUT the user ===
+REMEMBER: preferences, decisions, personal info, environment, goals, work style, feedback, name, location
 IGNORE: questions, greetings, "ok"/"hmm", debugging errors, temporary state, task instructions
 
-SPECIAL: If agent proposes X and user agrees ("ok", "ừ", "được") → extract as user decision:
-  Agent: "Dùng Redis nhé?" User: "OK" → user_fact: "User đồng ý dùng Redis"
-  Agent: "Dùng Redis nhé?" User: (changes topic) → NO fact (not confirmed)
+SPECIAL: If agent proposes X and user agrees ("ok", "ừ", "được") → extract as USER decision in user_facts:
+  Agent: "Dùng Redis nhé?" User: "OK" → user_facts: "User đồng ý dùng Redis"
 
-=== AGENT FACTS: Significant decisions/recommendations the AGENT made ===
-REMEMBER: concrete technical decisions, accepted recommendations, significant solutions
+=== AGENT FACTS: Information ABOUT the agent's own choices ===
+REMEMBER: concrete technical decisions the AGENT made independently, architecture choices by the agent
 IGNORE: questions asked, procedural steps, code snippets, status updates, generic explanations
+NOTE: If a fact describes something about the USER (even if the agent mentioned it), it goes in user_facts
 
 === NEVER EXTRACT ===
 - Questions from either party ("Bạn muốn dùng gì?" is NOT a fact)
@@ -107,7 +122,6 @@ Rate each fact's long-term importance from 0.0 to 1.0:
 - 0.7-0.8: Technical decisions, project architecture, accepted recommendations
 - 0.5-0.6: Project-specific details, temporary preferences, current tasks
 - 0.3-0.4: Temporary events ("today I..."), short-term plans, session-specific context
-- 0.1-0.2: Trivial acknowledgments that somehow passed the filter
 
 === DEDUP RULES ===
 - ADD: genuinely new information
@@ -121,7 +135,7 @@ Rate each fact's long-term importance from 0.0 to 1.0:
 - Return ONLY valid JSON.`;
 
 module.exports = {
-    USER_FACT_SYSTEM_PROMPT,
-    AGENT_FACT_SYSTEM_PROMPT,
-    COMBINED_SYSTEM_PROMPT,
+  USER_FACT_SYSTEM_PROMPT,
+  AGENT_FACT_SYSTEM_PROMPT,
+  COMBINED_SYSTEM_PROMPT,
 };
