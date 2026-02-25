@@ -15,7 +15,7 @@ SERVER_PID=$!
 # 2. Wait for server to be ready before starting dashboard
 echo ""
 echo "⏳ Waiting for backend to be ready..."
-until wget -q --spider http://localhost:${PORT:-7437}/api/health 2>/dev/null; do
+until node -e "fetch('http://localhost:${PORT:-7437}/api/health').then(r => { if(r.ok) process.exit(0); else process.exit(1); }).catch(() => process.exit(1));" 2>/dev/null; do
     sleep 1
 done
 echo "✅ Backend is ready"
