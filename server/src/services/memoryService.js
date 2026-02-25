@@ -144,7 +144,25 @@ class MemoryService {
                         `User: ${(e.user_message || '').substring(0, 200)}\nAgent: ${(e.agent_response || '').substring(0, 200)}`
                     ).join('\n---\n');
                     const rewriteResult = await llmService.chatJSON(
-                        `You rewrite queries to be self-contained by resolving pronouns, references, and ambiguities using conversation history. Return JSON: {"rewritten_query": "..."}`,
+                        `# Task Objective
+Rewrite a user query to make it self-contained and explicit by resolving references and ambiguities using the conversation history.
+
+# Workflow
+1. Review the conversation history to identify relevant entities, topics, and context.
+2. Analyze the current query for:
+   - Pronouns (e.g., "they", "it", "nó", "cái đó")
+   - Referential expressions (e.g., "that", "those", "the same", "cái vừa nãy")
+   - Implicit context (e.g., "what about…", "and also…", "còn…")
+   - Incomplete info that can be inferred from conversation history
+3. If rewriting is needed: replace pronouns with specific entities, add necessary background, make implicit references explicit.
+4. If the query is already clear and self-contained, keep it unchanged.
+
+# Rules
+- Preserve the original intent of the user query.
+- Only use information explicitly available in the conversation history.
+- Do not introduce new assumptions or external knowledge.
+- Keep the rewritten query concise but fully explicit.
+- Return JSON: {"rewritten_query": "..."}`,
                         `RECENT CONVERSATION:\n${historyContext}\n\nORIGINAL QUERY: ${enrichedQuery}\n\nRewrite this query to be fully self-contained. If already clear, return the original.`,
                         { maxTokens: 200, timeout: 10000, purpose: 'query_rewrite' }
                     );
