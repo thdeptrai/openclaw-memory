@@ -99,7 +99,7 @@ export default function Dashboard() {
               <div className="flex flex-col gap-1.5">
                 <ServiceDot name="PostgreSQL" status={checks.postgres} />
                 <ServiceDot name="Qdrant" status={checks.qdrant} />
-                <ServiceDot name="Ollama" status={checks.embedding} />
+                <ServiceDot name="Ollama" status={checks.ollama} />
               </div>
             </CardContent>
           </Card>
