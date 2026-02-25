@@ -7,9 +7,8 @@
 
 // Apply theme immediately to prevent FOUC
 (function initTheme() {
-    const saved = localStorage.getItem('memolo-theme') || 'dark';
-    document.documentElement.setAttribute('data-bs-theme', saved);
-    // Update toggle UI when DOM is ready
+    const saved = localStorage.getItem('memolo-theme') || 'night';
+    document.documentElement.setAttribute('data-theme', saved);
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => updateThemeUI(saved));
     } else {
@@ -18,9 +17,10 @@
 })();
 
 function toggleTheme() {
-    const current = document.documentElement.getAttribute('data-bs-theme') || 'dark';
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-bs-theme', next);
+    const current = document.documentElement.getAttribute('data-theme') || 'night';
+    const isDark = ['night', 'dark', 'dracula', 'business'].includes(current);
+    const next = isDark ? 'corporate' : 'night';
+    document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('memolo-theme', next);
     updateThemeUI(next);
 }
@@ -28,8 +28,9 @@ function toggleTheme() {
 function updateThemeUI(theme) {
     const icon = document.getElementById('theme-icon');
     const label = document.getElementById('theme-label');
-    if (icon) icon.textContent = theme === 'dark' ? '🌙' : '☀️';
-    if (label) label.textContent = theme === 'dark' ? 'Dark mode' : 'Light mode';
+    const isDark = ['night', 'dark', 'dracula', 'business'].includes(theme);
+    if (icon) icon.textContent = isDark ? '🌙' : '☀️';
+    if (label) label.textContent = isDark ? 'Dark mode' : 'Light mode';
 }
 
 const API = '';  // Same origin
@@ -59,18 +60,16 @@ function showPage(page) {
     const navLink = document.querySelector(`.sidebar-link[data-page="${page}"]`);
     if (navLink) navLink.classList.add('active');
 
-    // Close offcanvas sidebar on mobile after navigation
-    const sidebar = document.getElementById('sidebarMenu');
-    if (sidebar && window.innerWidth < 992) {
-        const bsOffcanvas = bootstrap.Offcanvas.getInstance(sidebar);
-        if (bsOffcanvas) bsOffcanvas.hide();
+    // Close drawer sidebar on mobile after navigation
+    const toggle = document.getElementById('sidebar-toggle');
+    if (toggle && window.innerWidth < 1024) {
+        toggle.checked = false;
     }
 
     // Load page-specific data
     if (page === 'conversations') loadConversations();
     if (page === 'agents') loadAgentsFull();
     if (page === 'memories') loadMemoriesFull();
-
     if (page === 'settings') loadSettings();
 }
 
@@ -211,10 +210,10 @@ function updateStatsFromSSE(data) {
         const el = document.getElementById(id);
         if (el && el.textContent !== String(value)) {
             el.textContent = value;
-            const card = el.closest('.stat-card');
+            const card = el.closest('.stat');
             if (card) {
                 card.classList.remove('flash');
-                void card.offsetWidth; // Force reflow
+                void card.offsetWidth;
                 card.classList.add('flash');
             }
         }
@@ -284,21 +283,21 @@ function showToast(icon, title, desc) {
     if (!container) return;
 
     const toast = document.createElement('div');
-    toast.className = 'toast';
+    toast.className = 'alert alert-info shadow-lg text-sm max-w-sm';
     toast.innerHTML = `
-    <span class="toast-icon">${icon}</span>
-    <div class="toast-body">
-      <div class="toast-title">${escHtml(title)}</div>
-      <div class="toast-desc">${escHtml(desc)}</div>
+    <span>${icon}</span>
+    <div>
+      <div class="font-bold">${escHtml(title)}</div>
+      <div class="text-xs opacity-70">${escHtml(desc)}</div>
     </div>
-    <span class="toast-time">now</span>
   `;
 
     container.appendChild(toast);
 
     // Auto dismiss after 5s
     setTimeout(() => {
-        toast.classList.add('hiding');
+        toast.style.transition = 'opacity 0.3s';
+        toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
     }, 5000);
 
@@ -782,22 +781,22 @@ function debounceSearchMemories(query) {
 
 function filterMemoryType(type, btn) {
     currentMemoryFilter = type;
-    btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('btn-active'));
+    btn.classList.add('btn-active');
     applyMemoryFilters();
 }
 
 function filterMemoryActor(actor, btn) {
     currentActorFilter = actor;
-    btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('btn-active'));
+    btn.classList.add('btn-active');
     applyMemoryFilters();
 }
 
 function filterMemoryStatus(status, btn) {
     currentStatusFilter = status;
-    btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('btn-active'));
+    btn.classList.add('btn-active');
     applyMemoryFilters();
 }
 
@@ -857,7 +856,7 @@ function renderLogEntry(entry, containerId, animate) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    const empty = container.querySelector('.empty-state');
+    const empty = container.querySelector('.text-center');
     if (empty) empty.remove();
 
     if (currentLogFilter !== 'all' && entry.level !== currentLogFilter) return;
@@ -867,13 +866,15 @@ function renderLogEntry(entry, containerId, animate) {
     if (!animate) div.style.animation = 'none';
     div.dataset.level = entry.level;
 
+    const levelColors = { info: 'badge-info', warn: 'badge-warning', error: 'badge-error', debug: 'badge-ghost' };
+    const levelClass = levelColors[entry.level] || 'badge-ghost';
     const source = entry.source ? `<span class="log-source">${entry.source}</span>` : '';
 
     div.innerHTML = `
     <span class="log-time">${formatLogTime(entry.timestamp)}</span>
-    <span class="log-level ${entry.level}">${entry.level}</span>
+    <span class="badge badge-xs ${levelClass}">${entry.level}</span>
     ${source}
-    <span class="log-message">${escHtml(entry.message)}</span>
+    <span class="log-msg">${escHtml(entry.message)}</span>
   `;
 
     container.appendChild(div);
@@ -889,8 +890,8 @@ function renderLogEntry(entry, containerId, animate) {
 
 function filterLogs(level, btn) {
     currentLogFilter = level;
-    btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('btn-active'));
+    btn.classList.add('btn-active');
 
     ['dash-logs-list', 'logs-full-list'].forEach(id => {
         const container = document.getElementById(id);
@@ -991,27 +992,25 @@ async function loadSettings() {
 // ============ API KEYS PANEL ============
 
 async function renderMemoloApiKeysPanel() {
-    // Update master key status from the info endpoint
     try {
         const res = await fetch('/api');
         const json = await res.json();
         const statusEl = document.getElementById('master-key-status');
         if (statusEl && json) {
             const authEnabled = json.auth === 'enabled';
-            const badgeClass = authEnabled ? 'bg-success' : 'bg-warning text-dark';
+            const badgeClass = authEnabled ? 'badge-success' : 'badge-warning';
             const statusIcon = authEnabled ? '✓' : '⚠';
             const statusText = authEnabled ? 'Enabled' : 'Disabled (dev mode)';
             statusEl.innerHTML = `<span class="badge ${badgeClass}">${statusIcon} ${statusText}</span>`;
         }
     } catch { }
 
-    // Update agent keys count
     try {
         const res = await api('GET', '/api/memory/agents');
         const countEl = document.getElementById('agent-keys-count');
         if (countEl && res.success) {
             const count = res.data.length;
-            countEl.innerHTML = `<span class="badge bg-secondary">🤖 ${count} agent${count !== 1 ? 's' : ''}</span>`;
+            countEl.innerHTML = `<span class="badge badge-ghost">🤖 ${count} agent${count !== 1 ? 's' : ''}</span>`;
         }
     } catch { }
 }
@@ -1043,8 +1042,8 @@ function renderSettingsForm() {
     let html = '';
     for (const [groupName, items] of Object.entries(groups)) {
         const icon = groupIcons[groupName] || '⚙️';
-        html += `<div class="settings-group">`;
-        html += `<div class="settings-group-header">${icon} ${groupName}</div>`;
+        html += `<div class="setting-group">`;
+        html += `<div class="setting-group-header">${icon} ${groupName}</div>`;
 
         // Show Active LLM status banner for LLM Models group
         if (groupName === 'LLM Models') {
@@ -1059,7 +1058,7 @@ function renderSettingsForm() {
             html += `</div></div></div>`;
         }
 
-        html += `<div class="settings-group-body">`;
+        html += `<div class="py-1">`;
 
         for (const item of items) {
             const isModified = settingsModified[item.key] !== undefined;
@@ -1067,22 +1066,19 @@ function renderSettingsForm() {
 
             html += `<div class="setting-row${isModified ? ' modified' : ''}">`;
             html += `<div class="setting-info">`;
-            html += `<div class="setting-label">${item.label}`;
-            if (!isDefault) html += ` <span class="setting-custom-badge">custom</span>`;
+            html += `<div class="setting-name">${item.label}`;
+            if (!isDefault) html += ` <span class="badge badge-warning badge-xs">custom</span>`;
             html += `</div>`;
-            html += `<div class="setting-description">${item.description || ''}</div>`;
+            html += `<div class="setting-desc">${item.description || ''}</div>`;
             html += `</div>`;
             html += `<div class="setting-control">`;
 
             if (item.type === 'boolean') {
                 const checked = (settingsModified[item.key] !== undefined ? settingsModified[item.key] : item.value) ? 'checked' : '';
-                html += `<label class="toggle-switch">`;
-                html += `<input type="checkbox" ${checked} onchange="onSettingChange('${item.key}', this.checked)">`;
-                html += `<span class="toggle-slider"></span>`;
-                html += `</label>`;
+                html += `<input type="checkbox" class="toggle toggle-primary toggle-sm" ${checked} onchange="onSettingChange('${item.key}', this.checked)">`;
             } else if (item.type === 'select' && item.options) {
                 const val = settingsModified[item.key] !== undefined ? settingsModified[item.key] : item.value;
-                html += `<select class="setting-select" onchange="onSettingChange('${item.key}', this.value)">`;
+                html += `<select class="select select-bordered select-sm" onchange="onSettingChange('${item.key}', this.value)">`;
                 for (const opt of item.options) {
                     html += `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`;
                 }
@@ -1092,7 +1088,7 @@ function renderSettingsForm() {
                 const step = item.step || (item.max <= 1 ? 0.05 : 1);
                 const unit = item.unit ? ` <span class="setting-unit">${formatUnit(val, item.unit)}</span>` : '';
                 html += `<div class="number-input-group">`;
-                html += `<input type="number" class="setting-input" value="${val}" `;
+                html += `<input type="number" class="input input-bordered input-sm w-24" value="${val}" `;
                 html += `min="${item.min !== undefined ? item.min : ''}" max="${item.max !== undefined ? item.max : ''}" step="${step}" `;
                 html += `onchange="onSettingChange('${item.key}', parseFloat(this.value))">`;
                 html += unit;
@@ -1100,16 +1096,16 @@ function renderSettingsForm() {
             } else if (item.type === 'textarea') {
                 const val = settingsModified[item.key] !== undefined ? settingsModified[item.key] : item.value;
                 const charCount = (val || '').length;
-                html += `<div class="prompt-editor-wrap">`;
-                html += `<textarea class="setting-textarea" rows="12" `;
+                html += `<div class="w-full">`;
+                html += `<textarea class="textarea textarea-bordered w-full text-xs font-mono" rows="12" `;
                 html += `onchange="onSettingChange('${item.key}', this.value)" `;
                 html += `oninput="this.parentElement.querySelector('.char-count').textContent = this.value.length + ' chars'">`;
                 html += escHtml(val || '');
                 html += `</textarea>`;
-                html += `<div class="prompt-editor-footer">`;
-                html += `<span class="char-count">${charCount} chars</span>`;
+                html += `<div class="flex items-center justify-between mt-1">`;
+                html += `<span class="char-count text-xs text-base-content/40">${charCount} chars</span>`;
                 if (!isDefault) {
-                    html += `<button class="btn-reset-prompt" onclick="resetSingleSetting('${item.key}')" title="Reset to default prompt">↩ Reset to Default</button>`;
+                    html += `<button class="btn btn-ghost btn-xs" onclick="resetSingleSetting('${item.key}')" title="Reset to default prompt">↩ Reset</button>`;
                 }
                 html += `</div>`;
                 html += `</div>`;
@@ -1117,22 +1113,22 @@ function renderSettingsForm() {
                 const val = settingsModified[item.key] !== undefined ? settingsModified[item.key] : item.value;
                 // Mask API keys
                 const inputType = item.key.includes('apiKey') || item.key.includes('Key') ? 'password' : 'text';
-                html += `<input type="${inputType}" class="setting-input setting-input-text" value="${val}" `;
+                html += `<input type="${inputType}" class="input input-bordered input-sm" value="${val}" `;
                 html += `onchange="onSettingChange('${item.key}', this.value)"`;
                 html += `${inputType === 'password' ? ' autocomplete="off"' : ''}>`;
             }
 
             // Reset single setting button (skip for textarea — they have their own)
             if (!isDefault && item.type !== 'textarea') {
-                html += `<button class="btn-reset-single" onclick="resetSingleSetting('${item.key}')" title="Reset to default: ${item.default}">↩</button>`;
+                html += `<button class="btn btn-ghost btn-xs" onclick="resetSingleSetting('${item.key}')" title="Reset to default: ${item.default}">↩</button>`;
             }
 
             html += `</div>`; // setting-control
             html += `</div>`; // setting-row
         }
 
-        html += `</div>`; // settings-group-body
-        html += `</div>`; // settings-group
+        html += `</div>`; // py-1
+        html += `</div>`; // setting-group
     }
 
     container.innerHTML = html;
