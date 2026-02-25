@@ -18,27 +18,9 @@ const embeddingService = require('./embeddingService');
 const vectorStore = require('./vectorStore');
 const db = require('../models');
 const eventBus = require('./eventBus');
+const { DEDUP_SYSTEM_PROMPT } = require('./promptDefaults');
 
-// ============ PROMPTS (mem0-inspired with old_memory tracking) ============
-
-const DEDUP_SYSTEM_PROMPT = `You are a smart memory manager which controls the memory of a system.
-You can perform four operations: (1) ADD into memory, (2) UPDATE memory, (3) DELETE from memory, (4) NONE (no change).
-
-Compare newly retrieved facts with existing memories. For each new fact, decide:
-- ADD: The fact is genuinely new information not in any existing memory. Generate a new integer ID.
-- UPDATE: An existing memory CONTRADICTS or is CORRECTED by the new fact. Merge both into an improved version. Keep the SAME ID.
-- DELETE: The new fact explicitly says something is no longer true, making an existing memory obsolete. Keep the SAME ID.
-- NONE: The fact is already fully covered by an existing memory (same meaning, possibly different wording). No action needed.
-
-RULES:
-1. STRONGLY prefer NONE over UPDATE when the meaning is the same. Only use UPDATE when the new fact adds genuinely new detail or CONTRADICTS the existing memory.
-2. NEVER use UPDATE just because the wording is slightly different. If the core information is the same, use NONE.
-3. When UPDATEing, combine old memory + new fact into ONE improved sentence.
-4. Keep the ORIGINAL LANGUAGE (Vietnamese → Vietnamese).
-5. Return ONLY valid JSON — no markdown, no explanations.
-6. Use ONLY the integer IDs from the existing memories list. Do NOT invent new IDs for UPDATE/DELETE.
-7. For CONTRADICTIONS (e.g., "used to live in A, now lives in B"), use UPDATE to replace the old fact with the new one.
-8. Each new fact should produce EXACTLY ONE action entry. Do not skip any facts.`;
+// ============ PROMPTS (centralized in promptDefaults.js, overridable via runtimeConfig) ============
 
 const DEDUP_USER_TEMPLATE = `EXISTING MEMORIES:
 {{EXISTING_MEMORIES}}
@@ -422,7 +404,8 @@ async function callOllamaForDedup(facts, existingMemoriesMap) {
         .replace('{{EXISTING_MEMORIES}}', existingForPrompt)
         .replace('{{NEW_FACTS}}', factsForPrompt);
 
-    const parsed = await llmService.chatJSON(DEDUP_SYSTEM_PROMPT, userPrompt, {
+    const systemPrompt = runtimeConfig.get('prompt.dedup') || DEDUP_SYSTEM_PROMPT;
+    const parsed = await llmService.chatJSON(systemPrompt, userPrompt, {
         maxTokens: 1500,
         timeout: runtimeConfig.get('factExtraction.dedupTimeout'),
         purpose: 'dedup',

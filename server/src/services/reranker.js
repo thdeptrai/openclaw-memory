@@ -8,16 +8,7 @@
 const config = require('../config');
 const runtimeConfig = require('../runtimeConfig');
 const llmService = require('./llmService');
-
-const RERANK_SYSTEM_PROMPT = `You are a RELEVANCE SCORER. Given a QUERY and candidate MEMORIES, rate each memory's relevance from 0.0 to 1.0.
-
-RULES:
-1. Score 0.8-1.0 = directly answers the query
-2. Score 0.5-0.7 = somewhat related, provides useful context
-3. Score 0.2-0.4 = tangentially related
-4. Score 0.0-0.1 = irrelevant
-5. Return ONLY valid JSON
-6. Consider semantic meaning, not just keyword overlap`;
+const { RERANK_SYSTEM_PROMPT } = require('./promptDefaults');
 
 const RERANK_USER_TEMPLATE = `QUERY: "{{QUERY}}"
 
@@ -92,7 +83,8 @@ async function callLLMForRerank(query, memories) {
         .replace('{{QUERY}}', query)
         .replace('{{MEMORIES}}', memoriesForPrompt);
 
-    const parsed = await llmService.chatJSON(RERANK_SYSTEM_PROMPT, userPrompt, {
+    const systemPrompt = runtimeConfig.get('prompt.rerank') || RERANK_SYSTEM_PROMPT;
+    const parsed = await llmService.chatJSON(systemPrompt, userPrompt, {
         maxTokens: 1000,
         timeout: runtimeConfig.get('reranking.timeout'),
         purpose: 'rerank',

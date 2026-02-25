@@ -12,6 +12,7 @@ const db = require('../models');
 const embeddingService = require('./embeddingService');
 const vectorStore = require('./vectorStore');
 const runtimeConfig = require('../runtimeConfig');
+const { CATEGORY_SUMMARY_PROMPT } = require('./promptDefaults');
 
 // Default categories with descriptions
 const DEFAULT_CATEGORIES = [
@@ -149,8 +150,8 @@ async function generateCategorySummary(categoryId, categoryName) {
         const memoryTexts = memories.map((m, i) => `[${i}] ${m.content}`).join('\n');
 
         const result = await llmService.chatJSON(
-            `You are a memory summarizer. Given a list of memories in the "${categoryName}" category, produce a concise summary (2-4 sentences) capturing the key patterns and important facts. Return JSON: {"summary": "..."}`,
-            `MEMORIES:\n${memoryTexts.substring(0, 3000)}\n\nSummarize these ${memories.length} memories concisely.`,
+            runtimeConfig.get('prompt.categorySummary') || CATEGORY_SUMMARY_PROMPT,
+            `CATEGORY: "${categoryName}"\nMEMORIES:\n${memoryTexts.substring(0, 3000)}\n\nSummarize these ${memories.length} memories concisely.`,
             { maxTokens: 300, timeout: 15000, purpose: 'category_summary' }
         );
 

@@ -59,6 +59,10 @@ const defaults = {
 const promptDefaults = require('./services/promptDefaults');
 const _promptDefaults = {
     'prompt.combinedSystem': promptDefaults.COMBINED_SYSTEM_PROMPT,
+    'prompt.dedup': promptDefaults.DEDUP_SYSTEM_PROMPT,
+    'prompt.rerank': promptDefaults.RERANK_SYSTEM_PROMPT,
+    'prompt.queryRewriter': promptDefaults.QUERY_REWRITER_PROMPT,
+    'prompt.categorySummary': promptDefaults.CATEGORY_SUMMARY_PROMPT,
 };
 // Merge prompt defaults into defaults and store
 Object.assign(defaults, _promptDefaults);
@@ -95,7 +99,11 @@ const settingsMeta = {
     'scheduler.memoryDecay': { label: 'Memory Decay', group: 'Scheduler', type: 'number', min: 60000, max: 86400000, unit: 'ms', description: 'How often to apply memory importance decay' },
 
 
-    'prompt.combinedSystem': { label: 'Combined Extract+Dedup Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for combined fact extraction + deduplication (all providers)' },
+    'prompt.combinedSystem': { label: 'Extract + Dedup Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for combined fact extraction + deduplication (all providers)' },
+    'prompt.dedup': { label: 'Dedup Decision Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for memory deduplication decisions (ADD/UPDATE/DELETE/NONE)' },
+    'prompt.rerank': { label: 'Rerank Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for LLM-based relevance scoring of search results' },
+    'prompt.queryRewriter': { label: 'Query Rewriter Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for rewriting recall queries to resolve pronouns and references' },
+    'prompt.categorySummary': { label: 'Category Summary Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for generating concise summaries per memory category' },
 
     'categories.enabled': { label: 'Memory Categories', group: 'Processing', type: 'boolean', description: 'Enable automatic memory categorization (uses keyword heuristics, no extra LLM calls)' },
     'categories.autoSummary': { label: 'Category Auto-Summary', group: 'Processing', type: 'boolean', description: 'Generate LLM-powered summaries for categories (adds 1 LLM call per category with memories)' },
