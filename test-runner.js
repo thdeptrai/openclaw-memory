@@ -91,7 +91,7 @@ async function phaseHealth() {
     assert('Server responds', status === 200 || status === 503);
     assert('PostgreSQL connected', data.checks?.postgres === 'ok');
     assert('Qdrant connected', data.checks?.qdrant === 'ok');
-    console.log(`  Ollama: ${data.checks?.ollama || 'skipped'}`);
+    console.log(`  Embedding: ${data.checks?.embedding || 'skipped'}`);
 }
 
 // ─── Phase 2: Authentication ────────────────────────────────
