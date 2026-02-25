@@ -159,9 +159,10 @@ async function processBatch(agentId, entries) {
     const { user_facts, agent_facts, entities, topic: extractedTopic, _existingMemoryEntries } = combinedResult;
 
     // === Step 3: Apply actions ===
+    const shouldExtractAgentFacts = runtimeConfig.get('factExtraction.extractAgentFacts');
     const allFacts = [
         ...user_facts.map(f => ({ ...f, actorId: 'user' })),
-        ...agent_facts.map(f => ({ ...f, actorId: 'assistant' })),
+        ...(shouldExtractAgentFacts ? agent_facts.map(f => ({ ...f, actorId: 'assistant' })) : []),
     ];
 
     let added = 0, updated = 0, deleted = 0, skipped = 0;
@@ -290,9 +291,10 @@ async function processImmediately(entry) {
             const combinedResult = await factExtractor.extractAndDedup(userMessage, agentResponse, existingMemories);
             const { user_facts, agent_facts, entities, topic: extractedTopic, _existingMemoryEntries } = combinedResult;
 
+            const shouldExtractAgentFacts = runtimeConfig.get('factExtraction.extractAgentFacts');
             const allFacts = [
                 ...user_facts.map(f => ({ ...f, actorId: 'user' })),
-                ...agent_facts.map(f => ({ ...f, actorId: 'assistant' })),
+                ...(shouldExtractAgentFacts ? agent_facts.map(f => ({ ...f, actorId: 'assistant' })) : []),
             ];
 
             let added = 0, updated = 0, deleted = 0, skipped = 0;
@@ -356,7 +358,7 @@ async function processImmediately(entry) {
             }
         } else {
             // Ollama: separate extract + dedup
-            const extractResult = await factExtractor.extractFacts(userMessage, agentResponse, { extractAgentFacts: true });
+            const extractResult = await factExtractor.extractFacts(userMessage, agentResponse, { extractAgentFacts: runtimeConfig.get('factExtraction.extractAgentFacts') });
             const { facts, entities, topic: extractedTopic, actorId: factActorId, agentFacts } = extractResult;
 
             if (facts.length > 0) {

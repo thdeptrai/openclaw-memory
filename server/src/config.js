@@ -45,6 +45,6 @@ module.exports = {
   },
 
   graph: {
-    enabled: process.env.ENABLE_GRAPH !== 'false', // default: true
+    enabled: process.env.ENABLE_GRAPH === 'true', // default: false (graph features not yet wired)
   },
 };

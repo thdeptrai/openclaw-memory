@@ -14,10 +14,11 @@ const eventBus = require('../services/eventBus');
  *   - All requests when MEMOLO_MASTER_KEY is not set (local dev mode)
  */
 function apiKeyAuth(req, res, next) {
-    // Skip auth for health, logs/SSE (EventSource can't set headers), and API info
+    // Skip auth for health, logs/SSE (EventSource can't set headers), config (dashboard), and API info
     if (
         req.path === '/api/health' || req.path === '/health' ||
         req.path.startsWith('/api/logs') ||
+        req.path.startsWith('/api/config') ||
         req.path === '/api'
     ) {
         return next();
