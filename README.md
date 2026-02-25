@@ -2,25 +2,44 @@
 
 > Persistent, self-organizing memory for AI agents — atomic fact extraction, knowledge graph, LLM deduplication, and semantic recall across your LAN
 
-## Quick Start (Docker)
+## Quick Start
+
+### Prerequisites
+
+- **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** — runs PostgreSQL, Qdrant, Server, Dashboard
+- **[Ollama](https://ollama.com)** — runs locally on host for embedding generation (needs GPU)
+- **[MiniMax API Key](https://platform.minimax.io)** — cloud LLM for fact extraction & deduplication
+
+### Installation
 
 ```bash
-# 1. Clone & configure
+# 1. Clone
+git clone https://github.com/thdeptrai/memolo.git
 cd memolo
-cp .env.example .env
-# Edit .env → set MEMOLO_MASTER_KEY to a random string
-#           → set MINIMAX_API_KEY to your MiniMax API key
 
-# 2. Ensure Ollama is running with embedding model
+# 2. Pull embedding model
 ollama pull qwen3-embedding:8b
 
-# 3. Start everything
+# 3. Configure
+cp .env.example .env
+# Edit .env → set these 2 required values:
+#   MEMOLO_MASTER_KEY=<random string for API security>
+#   MINIMAX_API_KEY=<your MiniMax API key>
+
+# 4. Start everything
 docker compose up -d
 
-# Server + Dashboard: http://localhost:7437
+# ✅ Done!
+# API:       http://localhost:7437
+# Dashboard: http://localhost:3001
 ```
 
-**That's it.** PostgreSQL, Qdrant, and the Memolo server all start automatically.
+### Update to Latest Version
+
+```bash
+bash update.sh
+# Or: git pull && docker compose up -d --build memolo
+```
 
 ---
 
