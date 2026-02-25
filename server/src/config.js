@@ -40,7 +40,7 @@ module.exports = {
   },
 
   reranking: {
-    enabled: process.env.ENABLE_RERANKING !== 'false', // default: true
+    enabled: process.env.ENABLE_RERANKING === 'true', // default: false (only works with Ollama provider)
     timeout: parseInt(process.env.RERANK_TIMEOUT || '30000'),
   },
 
