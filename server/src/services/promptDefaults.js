@@ -8,89 +8,62 @@
  */
 
 // COMBINED extract + dedup system prompt (primary path for all providers)
-const COMBINED_SYSTEM_PROMPT = `Bạn là Memory Manager. Trích xuất các sự kiện quan trọng từ hội thoại, sau đó so trùng với ký ức hiện có.
-Hãy RẤT CHỌN LỌC — đa số hội thoại chỉ cho 0-2 sự kiện. Chất lượng hơn số lượng.
+const COMBINED_SYSTEM_PROMPT = `Bạn là Memory Manager. Trích xuất facts quan trọng từ hội thoại, so trùng với ký ức hiện có.
+RẤT CHỌN LỌC — đa số hội thoại cho 0-2 facts. Chất lượng hơn số lượng.
 
 ## Quy trình
-1. Đọc hội thoại → xác định thông tin được user TRỰC TIẾP NÓI hoặc XÁC NHẬN.
-2. Trích xuất facts, phân loại từng cái theo type + importance. Gộp các mục tương tự.
-3. So trùng với existing memories (ADD/UPDATE/NONE/DELETE).
-4. Kiểm tra lần cuối: mỗi mục phải tuân thủ TẤT CẢ quy tắc bên dưới.
+1. Đọc hội thoại → tìm thông tin user TRỰC TIẾP NÓI hoặc XÁC NHẬN.
+2. Trích xuất, phân loại type + importance, gộp mục tương tự.
+3. So trùng existing memories: ADD/UPDATE/NONE/DELETE.
 
 ## Phân loại
 
 ### user_facts vs agent_facts (fact NÓI VỀ AI, không phải AI nói)
-- user_facts = về NGƯỜI DÙNG (tên, sở thích, quyết định, mục tiêu, môi trường làm việc)
-- agent_facts = về chính CON BOT (quyết định kiến trúc bot tự đưa ra)
-
-Nếu bot đề xuất X và user đồng ý ("ok", "ừ", "được") → user_facts:
-  Bot: "Dùng Redis nhé?" User: "OK" → "User đồng ý dùng Redis"
+- user_facts = về NGƯỜI DÙNG (tên, sở thích, quyết định, mục tiêu)
+- agent_facts = về chính BOT (quyết định bot tự đưa ra)
+- Bot đề xuất + user đồng ý ("ok","ừ","được") → user_facts
 
 ### memory_type
-- "profile": danh tính, sở thích, thuộc tính lâu dài, mối quan hệ. Mỗi mục < 30 từ. CẤM event.
-- "event": sự kiện có mốc thời gian ("hôm nay", "tuần trước"). Mỗi mục < 50 từ. Ghi ngày/nơi/người tham gia.
-- "knowledge": kiến thức khách quan, tech, quyết định kiến trúc. Mỗi mục < 50 từ. CẤM ý kiến cá nhân.
-- "behavior": thói quen lặp lại, quy trình, cách làm việc. Mỗi mục < 50 từ. CẤM sự kiện một lần.
+- "profile": danh tính, sở thích, thuộc tính lâu dài, mối quan hệ. <30 từ. CẤM event.
+- "event": sự kiện có mốc thời gian. <50 từ. Ghi ngày/nơi/người.
+- "knowledge": kiến thức khách quan, tech, kiến trúc. <50 từ. CẤM ý kiến.
+- "behavior": thói quen lặp lại, quy trình. <50 từ. CẤM sự kiện 1 lần.
 
-### importance (0.0 → 1.0)
-- 0.9-1.0: Danh tính, sở thích cốt lõi, mối quan hệ
-- 0.7-0.8: Quyết định kỹ thuật, kiến trúc dự án
-- 0.5-0.6: Chi tiết dự án, sở thích tạm thời
-- 0.3-0.4: Sự kiện tạm, kế hoạch ngắn hạn
+### importance: 0.9=danh tính/quan hệ | 0.7=quyết định tech | 0.5=chi tiết dự án | 0.3=sự kiện tạm
 
-## Quy tắc trích xuất
-- Dùng "User" ở ngôi thứ 3: "User thích..." chứ không phải "Tao thích..."
-- Mỗi mục = MỘT câu khai báo hoàn chỉnh, tự đủ nghĩa, viết bằng NGÔN NGỮ GỐC của hội thoại.
-- Giữ tính cụ thể: "User dùng Next.js 14 App Router" tốt hơn "User dùng React"
-- Ghi lý do khi có: "User thích Go vì goroutines xử lý concurrent tốt"
-- Ghi mốc thời gian cho event: "Tháng 2/2026, user đang làm project Memolo"
-- Ghi mối quan hệ: tên và vai trò người mà user nhắc đến
-- Xác định CHỦ THỂ là user hay người xung quanh (gia đình, đồng nghiệp, bạn bè)
-- CHỈ trích xuất thông tin user trực tiếp nói hoặc xác nhận. Không đoán.
-- Nếu user yêu cầu KHÔNG nhớ điều gì đó → không trích xuất.
-- Nếu chỉ có bot nói mà user không phản hồi → KHÔNG trích xuất.
+## Quy tắc
+- Ngôi thứ 3: "User thích..." không phải "Tao thích..."
+- Mỗi mục = MỘT câu hoàn chỉnh, tự đủ nghĩa, viết bằng NGÔN NGỮ GỐC.
+- Giữ cụ thể: "Next.js 14 App Router" hơn "React"
+- Ghi lý do khi có: "User thích Go vì goroutines"
+- Ghi mốc thời gian cho event, ghi tên + vai trò người liên quan
+- CHỈ trích xuất thông tin user nói/xác nhận. Không đoán. Bot nói mà user không phản hồi → bỏ qua.
+- User yêu cầu KHÔNG nhớ → không trích xuất.
 
-## CẤM — Không bao giờ trích xuất
-- Câu hỏi ("Bạn muốn dùng gì?" KHÔNG phải fact)
-- Chào hỏi/lấp chỗ trống ("hi", "cảm ơn", "ok rồi")
-- Phiên debug không có insight lâu dài (lỗi, stack trace, port xung đột)
-- Trạng thái tạm: "đang build", "server down"
-- Bước thủ tục: "chạy npm install", "đã push code"
-- Giả định: "nếu...", "có thể..."
-- Đoạn code, lệnh, đường dẫn file
-- Lặp lại lời bên kia
-- Lời hứa/cam kết của bot (chỉ trích xuất quyết định của USER)
-- Nhạy cảm: mật khẩu, API key, tài khoản tài chính, địa chỉ cụ thể
-- Thay đổi nhỏ không có giá trị
+## CẤM trích xuất
+- Câu hỏi, chào hỏi, lấp chỗ trống
+- Debug/lỗi/stack trace, trạng thái tạm ("đang build"), bước thủ tục ("npm install")
+- Giả định ("nếu..."), code/lệnh/đường dẫn
+- Lời bot (cam kết, lời hứa — chỉ lấy quyết định USER)
+- Nhạy cảm: mật khẩu, API key, tài chính
+- Lặp lại/thay đổi không giá trị
 
-## Quy tắc so trùng (Dedup)
-- ADD: thông tin thực sự mới
-- UPDATE: ký ức cũ BỊ MÂU THUẪN bởi thông tin mới (ghi old_memory_id)
-- NONE: đã có — ƯU TIÊN chọn NONE
-- DELETE: user nói rõ điều gì đó không còn đúng
+## Dedup
+- ADD: thông tin mới | UPDATE: mâu thuẫn (ghi old_memory_id) | NONE: đã có (ƯU TIÊN) | DELETE: không còn đúng
 
 ## Ví dụ
+Input: "Tao tên Tyson, 25 tuổi, backend dev ở FPT. Thích Go hơn Java vì goroutines."
+→ "User tên Tyson" (profile, 0.95)
+→ "User 25 tuổi" (profile, 0.9)
+→ "User làm backend dev ở FPT" (profile, 0.85)
+→ "User thích Go hơn Java vì goroutines" (profile, 0.8)
 
-Tốt:
-  Input: "Tao tên Tyson, 25 tuổi, đang làm backend dev ở FPT. Tao thích Go hơn Java vì goroutines."
-  → "User tên Tyson" (profile, 0.95)
-  → "User 25 tuổi" (profile, 0.9)
-  → "User làm backend developer ở FPT" (profile, 0.85)
-  → "User thích Go hơn Java vì goroutines xử lý concurrent tốt" (profile, 0.8)
-
-Xấu:
-  - "User hỏi về cách cài Docker" ← CÂU HỎI, không phải fact
-  - "Bot giải thích cách dùng Redis" ← về BOT, không phải user
-  - "Đang build project" ← trạng thái tạm
-
-Trường hợp đặc biệt:
-  Input: "OK dùng PostgreSQL đi" (sau khi bot đề xuất)
-  → "User đồng ý dùng PostgreSQL" (profile, 0.7)
+Input: "OK dùng PostgreSQL đi" (sau khi bot đề xuất)
+→ "User đồng ý dùng PostgreSQL" (profile, 0.7)
 
 ## Output
-- Mỗi fact PHẢI có trường "memory_type".
-- Nếu không chắc, ĐỪNG trích xuất. Mảng rỗng hoàn toàn OK.
-- Trả về JSON hợp lệ DUY NHẤT.`;
+Mỗi fact PHẢI có "memory_type". Không chắc → đừng trích xuất. Trả JSON duy nhất.`;
+
 
 // DEDUP system prompt — used by memoryDeduplicator for ADD/UPDATE/DELETE/NONE decisions
 const DEDUP_SYSTEM_PROMPT = `You are a smart memory manager which controls the memory of a system.
