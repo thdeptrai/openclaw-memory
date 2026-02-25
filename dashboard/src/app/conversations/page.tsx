@@ -94,8 +94,8 @@ export default function Conversations() {
                                         key={c.id}
                                         onClick={() => setSelectedConvId(c.id)}
                                         className={`group relative p-3.5 rounded-xl cursor-pointer transition-all duration-200 ${isSelected
-                                                ? 'bg-accent ring-1 ring-primary/30 shadow-sm'
-                                                : 'hover:bg-accent/60'
+                                            ? 'bg-accent ring-1 ring-primary/30 shadow-sm'
+                                            : 'hover:bg-accent/60'
                                             }`}
                                     >
                                         {/* Active indicator */}
@@ -270,6 +270,13 @@ export default function Conversations() {
                                                 <div key={m.id} className="flex items-start gap-2">
                                                     <Badge variant="outline" className={`text-[10px] mt-0.5 shrink-0 uppercase ${m.type === 'fact' ? 'bg-green-500/10 text-green-500 border-green-500/20' : m.type === 'preference' ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' : 'bg-purple-500/10 text-purple-500 border-purple-500/20'}`}>
                                                         {m.type || 'MEMORY'}
+                                                    </Badge>
+                                                    <Badge variant="outline" className={`text-[10px] mt-0.5 shrink-0 uppercase ${(m.memory_type || 'knowledge') === 'profile' ? 'bg-pink-500/10 text-pink-500 border-pink-500/20' :
+                                                            (m.memory_type || 'knowledge') === 'event' ? 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20' :
+                                                                (m.memory_type || 'knowledge') === 'behavior' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                                                    'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                                        }`}>
+                                                        {m.memory_type || 'knowledge'}
                                                     </Badge>
                                                     <span className="text-muted-foreground leading-relaxed">{m.content}</span>
                                                 </div>
