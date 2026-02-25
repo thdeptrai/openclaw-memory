@@ -22,6 +22,16 @@ const db = require('../models');
 const eventBus = require('./eventBus');
 const categoryService = require('./categoryService');
 
+// ============ ACTOR SAFETY NET ============
+// LLM sometimes puts user-about facts into agent_facts array.
+// This heuristic re-assigns them to 'user' based on content.
+function isUserFact(text) {
+    if (!text) return false;
+    const lower = text.toLowerCase().trim();
+    return lower.startsWith('user ') || lower.startsWith('người dùng ')
+        || lower.includes('của user') || lower.includes('của người dùng');
+}
+
 // ============ QUEUE ============
 
 
@@ -163,7 +173,7 @@ async function processBatch(agentId, entries) {
     const shouldExtractAgentFacts = runtimeConfig.get('factExtraction.extractAgentFacts');
     const allFacts = [
         ...user_facts.map(f => ({ ...f, actorId: 'user' })),
-        ...(shouldExtractAgentFacts ? agent_facts.map(f => ({ ...f, actorId: 'assistant' })) : []),
+        ...(shouldExtractAgentFacts ? agent_facts.map(f => ({ ...f, actorId: isUserFact(f.text) ? 'user' : 'assistant' })) : []),
     ];
 
     let added = 0, updated = 0, deleted = 0, skipped = 0;
@@ -298,7 +308,7 @@ async function processImmediately(entry) {
         const shouldExtractAgentFacts = runtimeConfig.get('factExtraction.extractAgentFacts');
         const allFacts = [
             ...user_facts.map(f => ({ ...f, actorId: 'user' })),
-            ...(shouldExtractAgentFacts ? agent_facts.map(f => ({ ...f, actorId: 'assistant' })) : []),
+            ...(shouldExtractAgentFacts ? agent_facts.map(f => ({ ...f, actorId: isUserFact(f.text) ? 'user' : 'assistant' })) : []),
         ];
 
         let added = 0, updated = 0, deleted = 0, skipped = 0;
