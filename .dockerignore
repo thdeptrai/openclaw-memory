@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+
+# Dependencies (will be installed in Docker)
+node_modules
+server/node_modules
+dashboard/node_modules
+
+# Build artifacts
+dashboard/.next
+dashboard/out
+
+# Environment files (passed via docker-compose)
+.env
+.env.*
+!.env.example
+
+# Development files
+*.log
+npm-debug.log*
+.DS_Store
+
+# Test files
+test-*.js
+dataset-*.json
+
+# IDE
+.vscode
+.idea
+.agent
+
+# Plugin / SDK (not needed in unified image)
+plugin/
+sdk/
+examples/
+scripts/
+
+# Documentation
+*.md
+!README.md

@@ -28,15 +28,14 @@ services:
     restart: unless-stopped
 
   memolo:
-    build: ./server
+    build: .
     container_name: memolo-server
     ports:
       - "${PORT:-7437}:${PORT:-7437}"
-    volumes:
-      - ./server/src:/app/src
-      - ./server/migrations:/app/migrations
+      - "${DASHBOARD_PORT:-3001}:${DASHBOARD_PORT:-3001}"
     environment:
       PORT: ${PORT:-7437}
+      DASHBOARD_PORT: ${DASHBOARD_PORT:-3001}
       PG_HOST: postgres
       PG_PORT: 5432
       PG_USER: ${PG_USER:-openclaw}
