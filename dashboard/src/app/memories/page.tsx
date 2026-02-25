@@ -52,9 +52,7 @@ export default function Memories() {
         const matchesType = typeFilter === "all" || m.type === typeFilter;
         const matchesMemoryType = memoryTypeFilter === "all" || (m.memory_type || 'knowledge') === memoryTypeFilter;
 
-        let actor = "user";
-        if (m.source_agent_id) actor = "assistant";
-        if (m.actor_id === "manual") actor = "manual";
+        const actor = m.actor_id || "user";
         const matchesActor = actorFilter === "all" || actor === actorFilter;
 
         const isSuperseded = !!m.superseded_by;
