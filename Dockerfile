@@ -1,6 +1,12 @@
 # =============================================
-# Memolo — Unified Docker Image
+# Memolo — Optimized Unified Docker Image
 # Backend (Express :7437) + Dashboard (Next.js :3001)
+#
+# Optimizations:
+#   - Next.js standalone mode (eliminates 800MB node_modules)
+#   - Multi-stage build (build deps don't leak into final image)
+#   - Minimal COPY layers
+#   - Memory-efficient alpine base
 # =============================================
 
 # ---- Stage 1: Build Next.js dashboard ----
@@ -24,12 +30,10 @@ COPY server/src/ ./server/src/
 COPY server/migrations/ ./server/migrations/
 COPY server/start.sh ./server/
 
-# Copy dashboard production build from stage 1
-COPY --from=dashboard-build /build/.next ./dashboard/.next
+# Copy ONLY the standalone Next.js output (no full node_modules!)
+COPY --from=dashboard-build /build/.next/standalone ./dashboard/
+COPY --from=dashboard-build /build/.next/static ./dashboard/.next/static
 COPY --from=dashboard-build /build/public ./dashboard/public
-COPY --from=dashboard-build /build/node_modules ./dashboard/node_modules
-COPY dashboard/package.json ./dashboard/
-COPY dashboard/next.config.ts ./dashboard/
 
 # Copy entrypoint
 COPY entrypoint.sh .

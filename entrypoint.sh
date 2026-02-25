@@ -20,11 +20,11 @@ until node -e "fetch('http://localhost:${PORT:-7437}/api/health').then(r => { if
 done
 echo "✅ Backend is ready"
 
-# 3. Start Next.js dashboard
+# 3. Start Next.js dashboard (standalone mode — no npx overhead)
 echo ""
 echo "🖥️  Starting dashboard..."
 cd /app/dashboard
-NODE_ENV=production npx next start -p ${DASHBOARD_PORT:-3001} &
+PORT=${DASHBOARD_PORT:-3001} node server.js &
 DASHBOARD_PID=$!
 
 echo ""
