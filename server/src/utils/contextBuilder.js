@@ -11,7 +11,7 @@ function buildContextFromMemories(memories, maxLength = 3000) {
 
         // Universal knowledge first
         if (groups.universal.length > 0) {
-            parts.push('=== 🌐 Universal Knowledge ===');
+            parts.push('## Universal Knowledge');
             for (const m of groups.universal) {
                 parts.push(formatMemory(m));
             }
@@ -23,7 +23,7 @@ function buildContextFromMemories(memories, maxLength = 3000) {
         const currentTopic = profile.topic || null;
 
         if (currentTopic && groups.byTopic[currentTopic]) {
-            parts.push(`=== 📁 Project: "${currentTopic}" ===`);
+            parts.push(`## Project: ${currentTopic}`);
             for (const m of groups.byTopic[currentTopic]) {
                 parts.push(formatMemory(m));
             }
@@ -34,10 +34,10 @@ function buildContextFromMemories(memories, maxLength = 3000) {
         // Other topics (lower priority)
         const otherTopics = Object.keys(groups.byTopic);
         if (otherTopics.length > 0) {
-            parts.push('=== 📎 From Other Contexts ===');
+            parts.push('## Other Context');
             for (const topic of otherTopics) {
                 for (const m of groups.byTopic[topic]) {
-                    const topicLabel = topic !== 'general' ? `[${topic}]` : '';
+                    const topicLabel = topic !== 'general' ? `[${topic}] ` : '';
                     parts.push(formatMemory(m, topicLabel));
                 }
             }
@@ -47,7 +47,7 @@ function buildContextFromMemories(memories, maxLength = 3000) {
         // Ungrouped (no topic/scope info)
         if (groups.other.length > 0 && parts.length <= 2) {
             // Only show ungrouped if we don't have good grouped data
-            parts.push('=== Relevant Memories ===');
+            parts.push('## Memories');
             for (const m of groups.other) {
                 parts.push(formatMemory(m));
             }
@@ -57,23 +57,11 @@ function buildContextFromMemories(memories, maxLength = 3000) {
 
     // Mem0 style: no separate KB — facts in Qdrant are the knowledge base
 
-    // Summaries (conversation history insight)
-    if (memories.summaries && memories.summaries.length > 0) {
-        parts.push('=== Conversation History ===');
-        for (const s of memories.summaries) {
-            parts.push(`- ${s.summary}`);
-            if (s.facts && s.facts.length > 0) {
-                parts.push(`  Key facts: ${s.facts.slice(0, 3).join('; ')}`);
-            }
-        }
-        parts.push('');
-    }
-
     // Cross-agent memories
     if (memories.crossAgentMemories && memories.crossAgentMemories.length > 0) {
-        parts.push('=== Knowledge from Other Agents ===');
+        parts.push('## From Other Agents');
         for (const m of memories.crossAgentMemories) {
-            parts.push(`- [${m.agentName || m.agentId}] (${m.type}) ${m.content}`);
+            parts.push(`• ${m.content}  —  via ${m.agentName || m.agentId}`);
         }
         parts.push('');
     }
@@ -123,10 +111,10 @@ function groupByContext(memories) {
  * Format a single memory entry
  */
 function formatMemory(m, prefix = '') {
-    const agentLabel = m.agentId ? `[${m.agentId}]` : '';
-    const score = m.score ? ` (${(m.score * 100).toFixed(0)}%)` : '';
-    const typeLabel = m.type ? `(${m.type})` : '';
-    return `- ${prefix}${agentLabel} ${typeLabel}${score} ${m.content}`.trim();
+    const score = m.score ? `${(m.score * 100).toFixed(0)}%` : '';
+    const meta = [m.agentId, score].filter(Boolean).join(', ');
+    const metaStr = meta ? `  —  ${meta}` : '';
+    return `• ${prefix}${m.content}${metaStr}`;
 }
 
 module.exports = { buildContextFromMemories };

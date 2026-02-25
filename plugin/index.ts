@@ -821,7 +821,7 @@ const memoloPlugin = {
                     );
 
                     return {
-                        prependContext: `<memolo-memories>\nThe following memories from Memolo may be relevant:\n${contextStr}\n</memolo-memories>`,
+                        prependContext: `<memolo-memories>\n${contextStr}\n</memolo-memories>`,
                     };
                 } catch (err) {
                     api.logger.warn(`🧠 memolo: recall failed: ${String(err)}`);
