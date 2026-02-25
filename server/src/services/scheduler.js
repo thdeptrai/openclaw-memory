@@ -1,4 +1,5 @@
 const intelligenceService = require('./intelligenceService');
+const runtimeConfig = require('../runtimeConfig');
 
 /**
  * Scheduler — Runs periodic intelligence tasks
@@ -20,13 +21,15 @@ class Scheduler {
 
         console.log('⏰ Scheduler started');
 
-        // 1. Apply memory decay — every 6 hours
-        this.schedule('Memory Decay', 6 * 60 * 60 * 1000, async () => {
+        // 1. Apply memory decay
+        const decayMs = runtimeConfig.get('scheduler.memoryDecay');
+        this.schedule('Memory Decay', decayMs, async () => {
             await intelligenceService.applyDecay();
         });
 
-        // 3. Duplicate detection — every 2 hours
-        this.schedule('Duplicate Detection', 2 * 60 * 60 * 1000, async () => {
+        // 2. Duplicate detection
+        const dedupMs = runtimeConfig.get('scheduler.duplicateDetection');
+        this.schedule('Duplicate Detection', dedupMs, async () => {
             await intelligenceService.detectAndMergeDuplicates();
         });
     }

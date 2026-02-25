@@ -213,6 +213,7 @@ class MemoryService {
         try {
             const embedding = await embeddingService.generateEmbedding(enrichedQuery);
             const searchLimit = limit * 3; // Get 3x candidates for re-ranking
+            const baseThreshold = runtimeConfig.get('memory.vectorScoreThreshold') || 0.3;
             let semanticResults;
 
             if (activeTopic) {
@@ -221,14 +222,14 @@ class MemoryService {
                     limit: searchLimit,
                     agentId: agentId && !includeOtherAgents ? agentId : null,
                     topic: activeTopic,
-                    scoreThreshold: 0.35,
+                    scoreThreshold: baseThreshold,
                 });
 
                 // Pass 2: Broad search — picks up universal prefs, general knowledge, cross-project
                 const broadResults = await vectorStore.searchSimilar(embedding, {
                     limit: Math.ceil(searchLimit / 2),
                     agentId: agentId && !includeOtherAgents ? agentId : null,
-                    scoreThreshold: 0.45, // higher threshold for non-topic content
+                    scoreThreshold: baseThreshold + 0.10, // higher threshold for non-topic content
                 });
 
                 // Merge and deduplicate (topic results first)
@@ -249,7 +250,7 @@ class MemoryService {
                 semanticResults = await vectorStore.searchSimilar(embedding, {
                     limit: searchLimit,
                     agentId: agentId && !includeOtherAgents ? agentId : null,
-                    scoreThreshold: 0.40,
+                    scoreThreshold: baseThreshold + 0.05,
                 });
             }
 

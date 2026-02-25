@@ -1,4 +1,4 @@
-const config = require('../config');
+const runtimeConfig = require('../runtimeConfig');
 
 // ============ EMBEDDING CACHE ============
 // LRU cache to avoid redundant Ollama calls for identical text.
@@ -22,11 +22,13 @@ async function generateEmbedding(text) {
     }
 
     try {
-        const response = await fetch(`${config.ollama.baseUrl}/api/embeddings`, {
+        const baseUrl = runtimeConfig.get('ollama.baseUrl');
+        const embedModel = runtimeConfig.get('ollama.embedModel');
+        const response = await fetch(`${baseUrl}/api/embeddings`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: config.ollama.embedModel,
+                model: embedModel,
                 prompt: text,
                 keep_alive: '10m',
             }),
@@ -71,10 +73,12 @@ async function generateEmbeddings(texts) {
  */
 async function checkOllamaHealth() {
     try {
-        const response = await fetch(`${config.ollama.baseUrl}/api/tags`);
+        const baseUrl = runtimeConfig.get('ollama.baseUrl');
+        const embedModel = runtimeConfig.get('ollama.embedModel');
+        const response = await fetch(`${baseUrl}/api/tags`);
         if (!response.ok) return false;
         const data = await response.json();
-        const hasModel = data.models?.some(m => m.name.includes(config.ollama.embedModel));
+        const hasModel = data.models?.some(m => m.name.includes(embedModel));
         return { available: true, hasModel };
     } catch {
         return { available: false, hasModel: false };
