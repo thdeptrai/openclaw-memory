@@ -68,32 +68,29 @@ const store = { ...defaults };
 const settingsMeta = {
     'ollama.embedModel': { label: 'Embedding Model', group: 'Embeddings', type: 'string', description: 'Ollama model for generating embeddings' },
     'ollama.baseUrl': { label: 'Ollama Base URL', group: 'Embeddings', type: 'string', description: 'Ollama API endpoint (used for embeddings)' },
-    'minimax.apiKey': { label: 'MiniMax API Key', group: 'LLM Models', type: 'string', sensitive: true, description: 'MiniMax API key (x-api-key header)' },
-    'minimax.model': { label: 'MiniMax Model', group: 'LLM Models', type: 'string', description: 'MiniMax model name (e.g. MiniMax-M2.5)' },
-    'minimax.baseUrl': { label: 'MiniMax Base URL', group: 'LLM Models', type: 'string', description: 'MiniMax API endpoint' },
+    'minimax.apiKey': { label: 'MiniMax API Key', group: 'AI Models', type: 'string', sensitive: true, description: 'MiniMax API key (x-api-key header)' },
+    'minimax.model': { label: 'MiniMax Model', group: 'AI Models', type: 'string', description: 'MiniMax model name (e.g. MiniMax-M2.5)' },
+    'minimax.baseUrl': { label: 'MiniMax Base URL', group: 'AI Models', type: 'string', description: 'MiniMax API endpoint' },
 
-    'factExtraction.enabled': { label: 'Fact Extraction', group: 'Feature Toggles', type: 'boolean', description: 'Enable real-time fact extraction from exchanges' },
-    'factExtraction.extractAgentFacts': { label: 'Extract Agent Facts', group: 'Feature Toggles', type: 'boolean', description: 'Extract facts from assistant responses (in addition to user messages)' },
-    'reranking.enabled': { label: 'Memory Reranking', group: 'Feature Toggles', type: 'boolean', description: 'Enable LLM-based reranking of search results for better relevance' },
-    'graph.enabled': { label: 'Knowledge Graph', group: 'Feature Toggles', type: 'boolean', description: 'Enable entity/relationship graph building from extracted facts' },
+    'factExtraction.enabled': { label: 'Fact Extraction', group: 'Processing', type: 'boolean', description: 'Enable real-time fact extraction from exchanges' },
+    'factExtraction.extractAgentFacts': { label: 'Extract Agent Facts', group: 'Processing', type: 'boolean', description: 'Extract facts from assistant responses (in addition to user messages)' },
+    'reranking.enabled': { label: 'Memory Reranking', group: 'Processing', type: 'boolean', description: 'Enable LLM-based reranking of search results for better relevance' },
+    'graph.enabled': { label: 'Knowledge Graph', group: 'Processing', type: 'boolean', description: 'Enable entity/relationship graph building from extracted facts' },
 
-    'factExtraction.timeout': { label: 'Fact Extract Timeout', group: 'Timeouts', type: 'number', min: 5000, max: 300000, unit: 'ms', description: 'Max time for LLM fact extraction call' },
-    'factExtraction.dedupTimeout': { label: 'Dedup Timeout', group: 'Timeouts', type: 'number', min: 5000, max: 300000, unit: 'ms', description: 'Max time for LLM deduplication call' },
-    'reranking.timeout': { label: 'Rerank Timeout', group: 'Timeouts', type: 'number', min: 5000, max: 300000, unit: 'ms', description: 'Max time for LLM reranking call' },
+    'factExtraction.timeout': { label: 'Fact Extract Timeout', group: 'Processing', type: 'number', min: 5000, max: 300000, unit: 'ms', description: 'Max time for LLM fact extraction call' },
+    'factExtraction.dedupTimeout': { label: 'Dedup Timeout', group: 'Processing', type: 'number', min: 5000, max: 300000, unit: 'ms', description: 'Max time for LLM deduplication call' },
+    'reranking.timeout': { label: 'Rerank Timeout', group: 'Processing', type: 'number', min: 5000, max: 300000, unit: 'ms', description: 'Max time for LLM reranking call' },
 
+    'batch.enabled': { label: 'Batch Processing', group: 'Processing', type: 'boolean', description: 'Queue exchanges and process in batches to reduce LLM API calls (recommended for cloud providers like MiniMax)' },
+    'batch.intervalMs': { label: 'Batch Interval', group: 'Processing', type: 'number', min: 1000, max: 60000, unit: 'ms', description: 'How often to flush the batch queue and send to LLM' },
+    'batch.maxSize': { label: 'Max Batch Size', group: 'Processing', type: 'number', min: 1, max: 50, description: 'Maximum exchanges per batch LLM call' },
+    'minimax.maxInputTokens': { label: 'MiniMax Input Token Budget', group: 'AI Models', type: 'number', min: 500, max: 8000, description: 'Max input tokens for MiniMax (context window limit minus output reserve)' },
 
     'memory.vectorScoreThreshold': { label: 'Vector Score Threshold', group: 'Memory', type: 'number', min: 0.0, max: 1.0, step: 0.05, description: 'Minimum cosine similarity score for vector search results (lower = more results but less relevant)' },
     'memory.agentFactMinResponseLength': { label: 'Agent Fact Min Response Length', group: 'Memory', type: 'number', min: 10, max: 500, description: 'Minimum agent response length (chars) to trigger agent fact extraction' },
 
-
     'scheduler.memoryDecay': { label: 'Memory Decay', group: 'Scheduler', type: 'number', min: 60000, max: 86400000, unit: 'ms', description: 'How often to apply memory importance decay' },
     'scheduler.duplicateDetection': { label: 'Duplicate Detection', group: 'Scheduler', type: 'number', min: 60000, max: 86400000, unit: 'ms', description: 'How often to scan for and merge duplicate memories' },
-
-
-    'batch.enabled': { label: 'Batch Processing', group: 'Batch', type: 'boolean', description: 'Queue exchanges and process in batches to reduce LLM API calls (recommended for cloud providers like MiniMax)' },
-    'batch.intervalMs': { label: 'Batch Interval', group: 'Batch', type: 'number', min: 1000, max: 60000, unit: 'ms', description: 'How often to flush the batch queue and send to LLM' },
-    'batch.maxSize': { label: 'Max Batch Size', group: 'Batch', type: 'number', min: 1, max: 50, description: 'Maximum exchanges per batch LLM call' },
-    'minimax.maxInputTokens': { label: 'MiniMax Input Token Budget', group: 'LLM Models', type: 'number', min: 500, max: 8000, description: 'Max input tokens for MiniMax (context window limit minus output reserve)' },
 
     'prompt.userFactSystem': { label: 'User Fact Extraction Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for extracting facts about the USER from conversations (Ollama path)' },
     'prompt.agentFactSystem': { label: 'Agent Fact Extraction Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for extracting facts about the AGENT/ASSISTANT (Ollama path)' },
