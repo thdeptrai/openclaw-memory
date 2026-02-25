@@ -359,6 +359,53 @@ QDRANT_PORT=6333
 
 ---
 
+## Scripts
+
+| Script | Platform | Purpose |
+|--------|----------|---------|
+| `setup.sh` | Linux/macOS | Automated full setup (Docker, Ollama, `.env`, start services) |
+| `setup.bat` | Windows | Same as above for Windows |
+| `update.sh` | Linux/macOS | Pull latest code from Git and rebuild Docker image |
+| `scripts/install-plugin.sh` | Linux/macOS | Install Memolo plugin into OpenClaw |
+
+### First-time Setup
+
+```bash
+# Linux/macOS
+bash setup.sh
+
+# Windows
+setup.bat
+```
+
+The setup script will:
+1. Check prerequisites (Docker, Ollama)
+2. Generate `.env` with random master key
+3. Pull required embedding model
+4. Start all Docker services
+5. Register a default agent
+
+### Update to Latest Version
+
+```bash
+bash update.sh
+# Or manually:
+git pull origin master
+docker compose up -d --build memolo
+```
+
+### Install OpenClaw Plugin
+
+From inside your OpenClaw project directory:
+
+```bash
+curl -sL https://raw.githubusercontent.com/thdeptrai/memolo/master/scripts/install-plugin.sh | bash
+```
+
+This downloads the plugin, installs dependencies, and registers it with OpenClaw CLI.
+
+---
+
 ## Documentation
 
 - 📋 [SETUP.md](SETUP.md) — Detailed setup & troubleshooting

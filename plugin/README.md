@@ -47,7 +47,7 @@ Then configure in your OpenClaw settings:
 Start the memory server (requires Docker):
 
 ```bash
-cd openclaw-memory
+cd memolo
 cp .env.example .env       # Set MEMOLO_MASTER_KEY + MINIMAX_API_KEY
 ollama pull qwen3-embedding:8b
 docker compose up -d       # PostgreSQL + Qdrant + Server
