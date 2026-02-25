@@ -242,7 +242,7 @@ async function processBatch(agentId, entries) {
     });
 
     // === Step 4: Graph processing ===
-    if (entities.length > 0) {
+    if (runtimeConfig.get('graph.enabled') && entities.length > 0) {
         try {
             const allFactTexts = allFacts.map(f => f.text);
             await graphService.processExtractedGraph(entities, allFactTexts, agentId);
@@ -351,7 +351,7 @@ async function processImmediately(entry) {
             const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
             console.log(`  ✅ Combined extract+dedup: ${allFacts.length} facts → ${added} add, ${updated} upd, ${deleted} del, ${skipped} skip (${elapsed}s)`);
 
-            if (entities.length > 0) {
+            if (runtimeConfig.get('graph.enabled') && entities.length > 0) {
                 try {
                     await graphService.processExtractedGraph(entities, allFacts.map(f => f.text), agentId);
                 } catch (graphErr) { console.warn('⚠️ Graph processing error:', graphErr.message); }
@@ -371,7 +371,7 @@ async function processImmediately(entry) {
                 const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
                 console.log(`  ✅ User facts: ${facts.length} → ${dedupResult.added} add, ${dedupResult.updated} upd (${elapsed}s)`);
 
-                if (entities.length > 0) {
+                if (runtimeConfig.get('graph.enabled') && entities.length > 0) {
                     try { await graphService.processExtractedGraph(entities, facts, agentId); }
                     catch (graphErr) { console.warn('⚠️ Graph error:', graphErr.message); }
                 }
