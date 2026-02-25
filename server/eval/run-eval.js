@@ -18,12 +18,9 @@
  */
 const path = require('path');
 
-// Load env from server
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
-
-const llmService = require('../src/services/llmService');
-const runtimeConfig = require('../src/runtimeConfig');
-const { COMBINED_SYSTEM_PROMPT } = require('../src/services/promptDefaults');
+const llmService = require(path.join(__dirname, '..', 'src', 'services', 'llmService'));
+const runtimeConfig = require(path.join(__dirname, '..', 'src', 'runtimeConfig'));
+const { COMBINED_SYSTEM_PROMPT } = require(path.join(__dirname, '..', 'src', 'services', 'promptDefaults'));
 
 // ============ GOLD TEST DATASET ============
 

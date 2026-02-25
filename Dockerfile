@@ -28,6 +28,7 @@ RUN cd server && npm ci --omit=dev
 # Copy server source
 COPY server/src/ ./server/src/
 COPY server/migrations/ ./server/migrations/
+COPY server/eval/ ./server/eval/
 COPY server/start.sh ./server/
 
 # Copy ONLY the standalone Next.js output (no full node_modules!)
