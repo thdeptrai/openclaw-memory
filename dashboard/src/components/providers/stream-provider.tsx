@@ -7,6 +7,7 @@ import { useSWRConfig } from "swr";
 export type LogLevel = "info" | "warn" | "error" | "debug" | "system";
 
 export interface SSELog {
+    id?: string;
     timestamp: string;
     level: LogLevel;
     source: string;
@@ -91,6 +92,20 @@ export function StreamProvider({ children }: { children: React.ReactNode }) {
 
             source.onopen = () => {
                 setStatus(s => ({ ...s, sse: "connected" }));
+                // Backfill: fetch existing logs from REST API so refresh doesn't lose history
+                fetch(`${API_URL}/api/logs?limit=200`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+                            setLogs(prev => {
+                                // Merge: keep any SSE logs that arrived during fetch, append historical
+                                const existingIds = new Set(prev.map(l => l.id || l.timestamp));
+                                const newLogs = data.data.filter((l: SSELog) => !existingIds.has(l.id || l.timestamp));
+                                return [...prev, ...newLogs].slice(0, 500);
+                            });
+                        }
+                    })
+                    .catch(() => { /* ignore backfill errors */ });
             };
 
             source.onmessage = (event) => {
