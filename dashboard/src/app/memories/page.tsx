@@ -353,8 +353,8 @@ export default function Memories() {
                             <Accordion type="single" collapsible className="w-full">
                                 {filteredMemories.map((mem: any) => {
                                     const isSuperseded = !!mem.superseded_by;
-                                    const actorBadge = mem.actor_id === 'manual' ? '✏️ MANUAL' : (mem.source_agent_id ? '🤖 ASST' : '👤 USER');
-                                    const actorClass = mem.actor_id === 'manual' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : (mem.source_agent_id ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20');
+                                    const actorBadge = mem.actor_id === 'manual' ? '✏️ MANUAL' : (mem.actor_id === 'assistant' ? '🤖 ASST' : '👤 USER');
+                                    const actorClass = mem.actor_id === 'manual' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : (mem.actor_id === 'assistant' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20');
                                     const parsedTags = Array.isArray(mem.tags) ? mem.tags : typeof mem.tags === 'string' ? mem.tags.replace(/[{}]/g, '').split(',').filter(Boolean) : [];
 
                                     return (
