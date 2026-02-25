@@ -1,0 +1,2 @@
+-- 011: (Removed) Drop summaries table — already applied.
+-- This migration is intentionally left empty.
