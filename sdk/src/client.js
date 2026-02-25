@@ -102,13 +102,6 @@ class MemoryClient {
         if (memories.raw) {
             const raw = memories.raw;
 
-            if (raw.summaries?.length > 0) {
-                parts.push('[Previous Context]');
-                for (const s of raw.summaries) {
-                    parts.push(`- ${s.summary}`);
-                }
-            }
-
             if (raw.semanticMemories?.length > 0) {
                 parts.push('\n[Relevant Memories]');
                 for (const m of raw.semanticMemories) {
@@ -155,7 +148,7 @@ class MemoryClient {
     }
 
     /**
-     * End a conversation and trigger final summarization
+     * End a conversation
      */
     async endConversation(conversationId) {
         const response = await this._request('POST', `/api/memory/conversations/${conversationId}/end`);
@@ -167,14 +160,6 @@ class MemoryClient {
      */
     async getRecentMemories(limit = 20) {
         const response = await this._request('GET', `/api/memory/agents/${this.agentId}/recent?limit=${limit}`);
-        return response.data || response;
-    }
-
-    /**
-     * Trigger manual summarization
-     */
-    async summarize(conversationId) {
-        const response = await this._request('POST', '/api/memory/summarize', { conversationId });
         return response.data || response;
     }
 

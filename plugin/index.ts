@@ -54,7 +54,6 @@ interface ExchangeItem {
 interface RecallResult {
     context: string;
     raw: {
-        summaries?: Array<{ summary: string }>;
         semanticMemories?: Array<{ content: string; agentId: string; score: number }>;
         crossAgentMemories?: Array<{ content: string; agentId: string; agentName: string }>;
         recentExchanges?: Array<{ userMessage: string; agentResponse: string }>;
@@ -64,7 +63,6 @@ interface RecallResult {
 interface StoreResult {
     conversationId: string;
     exchange: ExchangeItem;
-    summarizationTriggered: boolean;
 }
 
 interface StatsResult {
@@ -296,10 +294,6 @@ function buildContextString(recall: RecallResult): string {
     const parts: string[] = [];
     const raw = recall.raw;
 
-    if (raw?.summaries?.length) {
-        parts.push("[Previous Context]");
-        for (const s of raw.summaries) parts.push(`- ${s.summary}`);
-    }
     if (raw?.semanticMemories?.length) {
         parts.push("\n[Relevant Memories]");
         for (const m of raw.semanticMemories)
@@ -469,7 +463,7 @@ const memoloPlugin = {
                             content: [
                                 {
                                     type: "text",
-                                    text: `✅ Stored exchange in conversation ${result.conversationId}.${result.summarizationTriggered ? " Summarization triggered!" : ""}`,
+                                    text: `✅ Stored exchange in conversation ${result.conversationId}.`,
                                 },
                             ],
                             details: { action: "stored", result },
@@ -910,7 +904,7 @@ const memoloPlugin = {
                     }
 
                     api.logger.info(
-                        `🧠 memolo: auto-captured exchange in ${result.conversationId}${result.summarizationTriggered ? " (summarization triggered)" : ""}`,
+                        `🧠 memolo: auto-captured exchange in ${result.conversationId}`,
                     );
                 } catch (err) {
                     api.logger.warn(`🧠 memolo: capture failed: ${String(err)}`);

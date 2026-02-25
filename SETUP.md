@@ -18,25 +18,27 @@
 
 ### Prerequisites
 - Docker Desktop ≥ 4.0
-- Ollama ([ollama.com](https://ollama.com)) chạy trên host machine
+- Ollama ([ollama.com](https://ollama.com)) chạy trên host machine (chỉ dùng cho embedding)
+- MiniMax API key ([platform.minimax.io](https://platform.minimax.io))
 
 ```bash
-# 1. Pull Ollama models (chạy trên host, KHÔNG phải trong Docker)
+# 1. Pull Ollama embedding model (chạy trên host, KHÔNG phải trong Docker)
 ollama pull qwen3-embedding:8b
-ollama pull qwen2.5:7b
 
 # 2. Configure
 cd openclaw-memory
 cp .env.example .env
-# Edit .env → QUAN TRỌNG: đổi MEMOLO_MASTER_KEY thành chuỗi random
-# Generate key: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# Edit .env:
+#   → MEMOLO_MASTER_KEY: đổi thành chuỗi random
+#   → MINIMAX_API_KEY: điền API key từ MiniMax
+# Generate master key: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 # 3. Start (PG + Qdrant + Server)
 docker compose up -d
 
 # 4. Verify
 curl http://localhost:7437/api/health
-# → { "status": "healthy", "checks": { "server": "ok", "postgres": "ok", "qdrant": "ok", "ollama": "ok" } }
+# → { "status": "healthy", "checks": { "server": "ok", "postgres": "ok", "qdrant": "ok", "embedding": "ok" } }
 ```
 
 **Xong!** Server chạy trên port 7437, dashboard mở cùng URL.
@@ -70,25 +72,17 @@ File `.env` ở project root:
 # === BẮT BUỘC ===
 MEMOLO_MASTER_KEY=your-random-secret-key    # Master API key
 
+# === LLM: MiniMax M2.5 (BẮT BUỘC) ===
+MINIMAX_API_KEY=your-minimax-api-key        # Lấy từ platform.minimax.io
+MINIMAX_MODEL=MiniMax-M2.5                  # Model name
+MINIMAX_BASE_URL=https://api.minimax.io/anthropic/v1/messages
+
 # === SERVER ===
 PORT=7437                                    # Server port
 
-# === LLM PROVIDER ===
-LLM_PROVIDER=ollama                          # 'ollama' (default) hoặc 'minimax'
-
-# === OLLAMA (TÙY CHỌN, có defaults) ===
+# === EMBEDDING: Ollama (chỉ dùng cho embedding) ===
 OLLAMA_BASE_URL=http://host.docker.internal:11434  # Ollama URL (Docker)
 OLLAMA_EMBED_MODEL=qwen3-embedding:8b
-OLLAMA_CHAT_MODEL=qwen2.5:7b
-OLLAMA_TIMEOUT=180000                        # Request timeout (ms)
-
-# === MINIMAX M2.5 (TÙY CHỌN, nếu LLM_PROVIDER=minimax) ===
-MINIMAX_API_KEY=your-minimax-api-key
-MINIMAX_MODEL=MiniMax-M2.5
-MINIMAX_BASE_URL=https://api.minimax.io/anthropic/v1/messages
-
-# === MEMORY SETTINGS ===
-SUMMARIZE_AFTER_EXCHANGES=5                  # Summarize mỗi N exchanges
 EMBEDDING_DIMENSIONS=4096                    # Vector dimensions
 
 # === FEATURE FLAGS (mặc định: true) ===
@@ -271,7 +265,7 @@ curl -X POST http://192.168.1.100:7437/api/memory/recall \
 
 ## 7. Dashboard
 
-Mở `http://localhost:7437` (hoặc LAN IP) trong browser.
+Dashboard chạy riêng (Next.js) ở port 3001, proxy API requests đến server port 7437.
 
 Features:
 - **Stats bar**: Active memories, total exchanges, agents, conversations, SSE clients
@@ -281,8 +275,8 @@ Features:
 - **Knowledge Graph**: Entity visualization and exploration
 - **Knowledge Base**: Curated knowledge entries
 - **Live Logs**: Real-time log stream via SSE (HTTP requests, memory operations, errors)
-- **Runtime Settings**: Live configuration tuning (LLM provider, feature toggles, timeouts)
-- **Intelligence Stats**: Memory counts, duplicates, average importance
+- **Runtime Settings**: Live configuration tuning (LLM provider, feature toggles, timeouts, prompts)
+- **Recall Test**: Test recall/search queries against memory
 
 ---
 
@@ -293,12 +287,6 @@ Server hỗ trợ thay đổi cấu hình **live** qua API (không cần restart
 ```bash
 # Xem tất cả settings
 curl http://localhost:7437/api/config -H "X-API-Key: MASTER_KEY"
-
-# Đổi LLM provider sang MiniMax
-curl -X PUT http://localhost:7437/api/config \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: MASTER_KEY" \
-  -d '{"settings": {"llm.provider": "minimax"}}'
 
 # Tắt reranking
 curl -X PUT http://localhost:7437/api/config \
@@ -317,26 +305,30 @@ curl -X POST http://localhost:7437/api/config/reset \
 
 | Group | Setting | Type | Default |
 |-------|---------|------|---------|
-| LLM Models | `llm.provider` | select | `ollama` |
-| LLM Models | `ollama.chatModel` | string | `qwen2.5:7b` |
-| LLM Models | `ollama.embedModel` | string | `qwen3-embedding:8b` |
-| LLM Models | `minimax.apiKey` | string | — |
-| LLM Models | `minimax.model` | string | `MiniMax-M2.5` |
-| Feature Toggles | `factExtraction.enabled` | boolean | `true` |
-| Feature Toggles | `factExtraction.extractAgentFacts` | boolean | `true` |
-| Feature Toggles | `reranking.enabled` | boolean | `true` |
-| Feature Toggles | `graph.enabled` | boolean | `true` |
-| Timeouts | `factExtraction.timeout` | number | `60000` |
-| Timeouts | `factExtraction.dedupTimeout` | number | `60000` |
-| Timeouts | `reranking.timeout` | number | `30000` |
-| Timeouts | `summarizer.timeout` | number | `180000` |
-| Memory | `memory.summarizeAfterExchanges` | number | `5` |
+| AI Models | `minimax.apiKey` | string | — |
+| AI Models | `minimax.model` | string | `MiniMax-M2.5` |
+| AI Models | `minimax.baseUrl` | string | `https://api.minimax.io/anthropic/v1/messages` |
+| AI Models | `minimax.maxInputTokens` | number | `1600` |
+| Embeddings | `embedding.model` | string | `qwen3-embedding:8b` |
+| Embeddings | `embedding.baseUrl` | string | Ollama URL |
+| Embeddings | `embedding.dimensions` | readonly | `4096` |
+| Processing | `factExtraction.enabled` | boolean | `true` |
+| Processing | `factExtraction.extractAgentFacts` | boolean | `true` |
+| Processing | `reranking.enabled` | boolean | `true` |
+| Processing | `graph.enabled` | boolean | `true` |
+| Processing | `batch.enabled` | boolean | `true` |
+| Processing | `batch.intervalMs` | number | `10000` |
+| Processing | `batch.maxSize` | number | `10` |
+| Processing | `factExtraction.timeout` | number | `60000` |
+| Processing | `factExtraction.dedupTimeout` | number | `60000` |
+| Processing | `reranking.timeout` | number | `30000` |
 | Memory | `memory.vectorScoreThreshold` | number | `0.3` |
 | Memory | `memory.agentFactMinResponseLength` | number | `100` |
-| Scheduler | `scheduler.summarizationSweep` | number | `120000` |
-| Scheduler | `scheduler.memoryDecay` | number | `21600000` |
-| Scheduler | `scheduler.duplicateDetection` | number | `7200000` |
-| Scheduler | `scheduler.knowledgeConsolidation` | number | `43200000` |
+| Scheduler | `scheduler.memoryDecay` | number | `21600000` (6h) |
+| Scheduler | `scheduler.duplicateDetection` | number | `7200000` (2h) |
+| Prompts | `prompt.userFactSystem` | textarea | Built-in prompt |
+| Prompts | `prompt.agentFactSystem` | textarea | Built-in prompt |
+| Prompts | `prompt.combinedSystem` | textarea | Built-in prompt |
 
 ---
 
@@ -373,10 +365,8 @@ docker compose up -d         # Start lại
 
 | Task | Default Interval | Mô tả |
 |------|------------------|--------|
-| Summarization Sweep | 2 phút | Catch missed/failed summarizations |
-| Memory Decay | 6 giờ | Giảm importance |
+| Memory Decay | 6 giờ | Giảm importance của memories cũ |
 | Duplicate Detection | 2 giờ | Merge duplicate memories |
-| Knowledge Consolidation | 12 giờ | Tổng hợp knowledge base |
 
 > Tất cả intervals có thể thay đổi runtime qua Settings API (`scheduler.*`).
 
@@ -390,12 +380,12 @@ docker compose up -d         # Start lại
 | `Embedding failed` | `ollama serve` + `ollama pull qwen3-embedding:8b` |
 | `401 API key required` | Thêm header `X-API-Key` |
 | `401 Invalid API key` | Kiểm tra key đúng chưa, hoặc regenerate |
-| Store chậm lần đầu | Ollama cold start, bình thường |
+| Store chậm lần đầu | Ollama cold start cho embedding, bình thường |
 | Agents máy khác không connect | Mở firewall port 7437 |
-| Ollama timeout | Tăng `OLLAMA_TIMEOUT` trong .env hoặc `summarizer.timeout` qua Settings API |
-| `Qdrant collection missing` | Restart: `docker compose restart memolo` |
 | MiniMax API error | Kiểm tra `MINIMAX_API_KEY` đúng chưa, API quota |
-| LLM returned empty content | Kiểm tra model có load chưa: `ollama list` |
+| LLM returned empty content | Kiểm tra MiniMax API key và quota |
+| `Qdrant collection missing` | Restart: `docker compose restart memolo` |
+| Context window exceeded | Server tự động truncate và retry |
 
 ### Reset toàn bộ
 

@@ -9,9 +9,10 @@
 cd openclaw-memory
 cp .env.example .env
 # Edit .env → set MEMOLO_MASTER_KEY to a random string
+#           → set MINIMAX_API_KEY to your MiniMax API key
 
-# 2. Ensure Ollama is running with required models
-ollama pull qwen3-embedding:8b && ollama pull qwen2.5:7b
+# 2. Ensure Ollama is running with embedding model
+ollama pull qwen3-embedding:8b
 
 # 3. Start everything
 docker compose up -d
@@ -39,35 +40,25 @@ USER MESSAGE + AGENT RESPONSE
             │
             ▼
     ┌───────────────────┐
-    │ 2. Embed & Index  │  Generate 4096-dim embedding via Ollama,
+    │ 2. Batch Queue    │  Exchange enqueued into in-memory buffer
+    │ (if batch enabled)│  (reduces LLM API calls for cloud providers)
+    └───────┬───────────┘
+            │
+            ├──── (flush every 10s or when batch full) ────┐
+            │                                               │
+            ▼                                               ▼
+    ┌───────────────────┐                           ┌──────────────────┐
+    │ 3. Extract Facts  │                           │ 5. Update Graph  │
+    │ + Dedup (combined)│  1 LLM call per batch:    │                  │
+    │                   │   • Extract atomic facts   │ Entities → DB    │
+    │                   │   • ADD/UPDATE/DELETE/NONE  │ Co-occurring →   │
+    │                   │   • User + Agent facts      │ relationships    │
+    └───────┬───────────┘                           └──────────────────┘
+            │
+            ▼
+    ┌───────────────────┐
+    │ 4. Embed & Store  │  Generate 4096-dim embedding via Ollama,
     │                   │  store in Qdrant for semantic search
-    └───────┬───────────┘
-            │
-            ├──────────── (async, non-blocking) ──────────┐
-            │                                              │
-            ▼                                              ▼
-    ┌───────────────────┐                          ┌──────────────────┐
-    │ 3. Extract Facts  │                          │ 6. Summarization │
-    │ (per exchange)    │  LLM extracts 2-5        │ (every N msgs)   │
-    │                   │  atomic facts + entities │                  │
-    └───────┬───────────┘                          └──────────────────┘
-            │
-            ▼
-    ┌───────────────────┐
-    │ 4. Deduplicate    │  For each fact:
-    │                   │   • Content hash check (O(1) exact match)
-    │                   │   • Embed it → search top-5 similar in Qdrant
-    │                   │   • LLM decides:
-    │                   │     ADD    → genuinely new info
-    │                   │     UPDATE → merge with existing (supersede old)
-    │                   │     DELETE → contradicts existing (remove old)
-    │                   │     NONE   → already exists (skip)
-    └───────┬───────────┘
-            │
-            ▼
-    ┌───────────────────┐
-    │ 5. Update Graph   │  Entities → entities table
-    │                   │  Co-occurring entities → relationships table
     └───────────────────┘
 ```
 
@@ -119,13 +110,12 @@ Extracted Facts:
  3. "Database là PostgreSQL"
 ```
 
-### 🧠 LLM Deduplication
-When a new fact is extracted, Memolo doesn't blindly store it. Instead:
+### 🧠 Combined Extract + Dedup (1 LLM call)
+When a new exchange arrives, Memolo performs extraction AND deduplication in a **single LLM call** (optimized for cloud providers like MiniMax to minimize API costs):
 
-1. **Hash check** — O(1) exact-match via content_hash (MD5)
-2. **Embed** the fact into a 4096-dim vector
-3. **Search** for the top-5 most similar existing memories in Qdrant
-4. **Ask the LLM** to decide what to do
+1. **Extract** atomic facts from user + agent messages
+2. **Compare** against existing memories (fetched via vector search)
+3. **Decide** action for each fact: ADD / UPDATE / DELETE / NONE
 
 This prevents memory bloat and handles contradictions automatically:
 
@@ -138,6 +128,9 @@ Result:    "Đã chuyển sang sử dụng MySQL thay vì PostgreSQL" (old super
 ```
 
 **Key technique:** UUIDs are mapped to integers `[0], [1], [2]...` before sending to the LLM to prevent hallucination (inspired by mem0).
+
+### 📦 Batch Processing
+Exchanges are queued and processed in batches (configurable interval + max size) to **dramatically reduce LLM API calls** for cloud providers. A batch of 10 exchanges → 1 LLM call instead of 10.
 
 ### 🕸️ Knowledge Graph
 Entities mentioned in conversations are automatically extracted and linked:
@@ -159,9 +152,6 @@ Every ADD, UPDATE, and DELETE operation is logged with:
 - Who changed it (agent ID or system)
 - Why (dedup_merge, contradiction, manual, etc.)
 
-### ⚡ Progressive Summarization
-Every N exchanges (default: 5, configurable), Memolo creates a batch summary that captures the high-level narrative, extracting facts, decisions, and preferences as structured memories.
-
 ---
 
 ## Architecture
@@ -178,21 +168,22 @@ Every N exchanges (default: 5, configurable), Memolo creates a batch summary tha
                    │   Memolo    │ ← 0.0.0.0:7437
                    │   Server    │   API + Dashboard
                    ├─────────────┤
+                   │ Batch Queue │ ← queue + flush periodically
                    │ Fact Extract│ ← per-exchange atomic facts
                    │ Deduplicator│ ← LLM ADD/UPDATE/DELETE
                    │ Graph Engine│ ← entities + relationships
                    │ Reranker    │ ← LLM relevance scoring
-                   │ Summarizer  │ ← progressive reduction
-                   │ Intelligence│ ← decay, dedup, contradiction
-                   │ LLM Service │ ← Ollama / MiniMax provider
+                   │ Contradict. │ ← detect & supersede conflicts
+                   │ Intelligence│ ← decay, dedup
+                   │ LLM Service │ ← MiniMax M2.5
                    │ Auth Layer  │ ← master + per-agent keys
                    │ Config API  │ ← live runtime settings
                    └──────┬──────┘
               ┌───────────┼───────────┐
          ┌────▼────┐ ┌────▼────┐ ┌────▼────┐
          │PostgreSQL│ │ Qdrant  │ │ Ollama  │
-         │10 tables │ │ vectors │ │ (host)  │
-         │ + graph  │ │ 4096dim │ │         │
+         │ 9 tables │ │ vectors │ │ (host)  │
+         │ + graph  │ │ 4096dim │ │embed only│
          └─────────┘ └─────────┘ └─────────┘
 ```
 
@@ -201,12 +192,12 @@ Every N exchanges (default: 5, configurable), Memolo creates a batch summary tha
 | Component | Technology |
 |-----------|-----------|
 | Server | Node.js + Express 4.18 |
-| Database | PostgreSQL 16 (10 tables, 9 migrations) |
+| Database | PostgreSQL 16 (9 tables, 11 migrations) |
 | Vector Store | Qdrant (Cosine similarity, 4096 dim) |
-| Embeddings | Ollama `qwen3-embedding:8b` |
-| LLM (Facts/Dedup/Rerank/Summarize) | Ollama `qwen2.5:7b` (default) or MiniMax M2.5 |
+| Embeddings | Ollama `qwen3-embedding:8b` (local) |
+| LLM (Facts/Dedup/Rerank) | MiniMax M2.5 (cloud, Anthropic-compatible API) |
 | Auth | API key (master + per-agent) via `X-API-Key` header |
-| Dashboard | Vanilla HTML/CSS/JS (SPA, dark theme) |
+| Dashboard | Next.js 16 + TailwindCSS v4 + shadcn/ui (dark theme) |
 | Deployment | Docker Compose (single command) |
 
 ## Database Schema
@@ -217,7 +208,6 @@ Every N exchanges (default: 5, configurable), Memolo creates a batch summary tha
 | `conversations` | Conversation sessions per agent |
 | `exchanges` | Raw user/agent message pairs |
 | `memories` | Extracted facts, decisions, insights (with content_hash, actor_id, superseded_by) |
-| `summaries` | Batch conversation summaries |
 | `knowledge_base` | Curated knowledge entries |
 | `memory_history` | Audit trail for all memory mutations |
 | `entities` | Named entities from the knowledge graph |
@@ -282,7 +272,7 @@ const result = await memory.store({ userMessage: '...', agentResponse: '...' });
 | `GET` | `/api/memory/exchanges` | List all exchanges |
 | `GET` | `/api/memory/conversations` | List all conversations |
 | `GET` | `/api/memory/conversations/:id` | Get conversation details |
-| `POST` | `/api/memory/conversations/:id/end` | End conversation + trigger summarization |
+| `POST` | `/api/memory/conversations/:id/end` | End conversation |
 | `PATCH` | `/api/memory/:id` | Update memory (confirm/reject/supersede/update) |
 | `DELETE` | `/api/memory/:id` | Delete memory |
 
@@ -305,7 +295,7 @@ const result = await memory.store({ userMessage: '...', agentResponse: '...' });
 ### Intelligence & System
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/intelligence/run` | Run intelligence tasks (decay/dedup/consolidate) |
+| `POST` | `/api/intelligence/run` | Run intelligence tasks (decay/dedup) |
 | `POST` | `/api/intelligence/permissions/grant` | Grant read permission |
 | `POST` | `/api/intelligence/permissions/revoke` | Revoke read permission |
 | `POST` | `/api/intelligence/permissions/team` | Grant all-to-all team access |
@@ -334,22 +324,17 @@ const result = await memory.store({ userMessage: '...', agentResponse: '...' });
 # Required
 MEMOLO_MASTER_KEY=your-secret-key
 
-# Server
-PORT=7437                                    # Server port (default: 7437)
-
-# LLM Provider (choose one)
-LLM_PROVIDER=ollama                          # 'ollama' (default) or 'minimax'
-
-# Ollama (defaults shown)
-OLLAMA_BASE_URL=http://host.docker.internal:11434
-OLLAMA_CHAT_MODEL=qwen2.5:7b
-OLLAMA_EMBED_MODEL=qwen3-embedding:8b
-OLLAMA_TIMEOUT=180000                        # Ollama request timeout (ms)
-
-# MiniMax M2.5 (optional, if LLM_PROVIDER=minimax)
+# MiniMax M2.5 (Required — LLM for fact extraction, dedup, reranking)
 MINIMAX_API_KEY=your-minimax-api-key
 MINIMAX_MODEL=MiniMax-M2.5
 MINIMAX_BASE_URL=https://api.minimax.io/anthropic/v1/messages
+
+# Server
+PORT=7437                                    # Server port (default: 7437)
+
+# Ollama (Embeddings only)
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_EMBED_MODEL=qwen3-embedding:8b
 
 # Feature Flags (all default: true)
 ENABLE_FACT_EXTRACTION=true                  # Per-exchange atomic fact extraction
@@ -357,7 +342,6 @@ ENABLE_RERANKING=true                        # LLM search result reranking
 ENABLE_GRAPH=true                            # Knowledge graph processing
 
 # Tuning
-SUMMARIZE_AFTER_EXCHANGES=5                  # Batch summarize every N exchanges
 EMBEDDING_DIMENSIONS=4096                    # Embedding vector dimensions
 FACT_EXTRACT_TIMEOUT=60000                   # Fact extraction timeout (ms)
 DEDUP_TIMEOUT=60000                          # Dedup decision timeout (ms)

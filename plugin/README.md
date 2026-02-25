@@ -4,7 +4,7 @@
 
 Your agents forget everything between sessions. Memolo fixes that. It watches conversations, extracts what matters, and brings it back when relevant — automatically.
 
-Backed by a self-hosted memory server with **PostgreSQL**, **Qdrant** vector search, and **Ollama** embeddings.
+Backed by a self-hosted memory server with **PostgreSQL**, **Qdrant** vector search, **Ollama** embeddings, and **MiniMax M2.5** LLM.
 
 ## How it works
 
@@ -13,14 +13,14 @@ Backed by a self-hosted memory server with **PostgreSQL**, **Qdrant** vector sea
 │  OpenClaw    │──auto────│    Memolo     │──HTTP────│  Memory Server :7437 │
 │  Agent       │  recall  │    Plugin     │          │  ┌─ PostgreSQL       │
 │              │◀─inject──│              │          │  ├─ Qdrant           │
-│              │──auto────│              │          │  └─ Ollama           │
-│              │  capture │              │          │                      │
+│              │──auto────│              │          │  ├─ Ollama (embed)   │
+│              │  capture │              │          │  └─ MiniMax (LLM)    │
 └──────────────┘          └──────────────┘          └──────────────────────┘
 ```
 
 **Auto-Recall** — Before the agent responds, Memolo searches for memories matching the current message and injects them into context. Uses semantic search + knowledge graph + LLM reranking.
 
-**Auto-Capture** — After the agent responds, Memolo stores the exchange. For each exchange, it extracts atomic facts via LLM, deduplicates against existing memories (ADD/UPDATE/DELETE/NONE), and updates the knowledge graph. When enough exchanges accumulate, it triggers batch summarization.
+**Auto-Capture** — After the agent responds, Memolo stores the exchange. Exchanges are batched and processed together: atomic facts are extracted via LLM, deduplicated against existing memories (ADD/UPDATE/DELETE/NONE), and the knowledge graph is updated — all in a single LLM call per batch.
 
 **Cross-Agent Memory** — Agents can access each other's memories when granted permissions.
 
@@ -49,8 +49,8 @@ Start the memory server (requires Docker):
 
 ```bash
 cd openclaw-memory
-cp .env.example .env       # Set MEMOLO_MASTER_KEY
-ollama pull qwen3-embedding:8b && ollama pull qwen2.5:7b
+cp .env.example .env       # Set MEMOLO_MASTER_KEY + MINIMAX_API_KEY
+ollama pull qwen3-embedding:8b
 docker compose up -d       # PostgreSQL + Qdrant + Server
 ```
 
@@ -98,11 +98,12 @@ openclaw memolo agents
 The Memolo memory system consists of:
 
 - **Plugin** (this package) — OpenClaw integration layer
-- **Memory Server** — Express.js API with intelligence layer (14 services)
-- **PostgreSQL** — 10 tables: conversations, exchanges, memories, summaries, entities, relationships, knowledge_base, memory_history, agents, memory_conversations
+- **Memory Server** — Express.js API with intelligence layer (15 services)
+- **PostgreSQL** — 9 tables: conversations, exchanges, memories, entities, relationships, knowledge_base, memory_history, agents, memory_conversations
 - **Qdrant** — 4096-dim vector embeddings for semantic search
-- **Ollama** — Local LLM (default: `qwen2.5:7b` for fact extraction/dedup/rerank/summarization, `qwen3-embedding:8b` for embeddings). MiniMax M2.5 also supported as alternative LLM provider.
-- **Dashboard** — Web UI at `http://localhost:7437` with live logs, memory explorer, knowledge graph, and runtime settings
+- **MiniMax M2.5** — Cloud LLM for fact extraction, deduplication, reranking (Anthropic-compatible API)
+- **Ollama** — Local embedding generation (`qwen3-embedding:8b`)
+- **Dashboard** — Next.js web UI with live logs, memory explorer, knowledge graph, and runtime settings
 
 ## License
 
