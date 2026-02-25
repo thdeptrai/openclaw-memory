@@ -34,9 +34,21 @@ function apiKeyAuth(req, res, next) {
         return next();
     }
 
-    // These POST endpoints are read-only queries (dashboard uses them)
-    const readOnlyPosts = ['/api/memory/search', '/api/memory/recall', '/api/intelligence/run'];
-    if (req.method === 'POST' && readOnlyPosts.includes(req.path)) {
+    // Dashboard POST/PUT/DELETE endpoints — skip auth (dashboard has no API key)
+    const dashboardPaths = [
+        '/api/memory/search',
+        '/api/memory/recall',
+        '/api/memory/memories/add',
+        '/api/intelligence/run',
+    ];
+    if (dashboardPaths.includes(req.path)) {
+        return next();
+    }
+    // Dashboard DELETE /api/memory/:id and POST /api/memory/agents/:id/regenerate-key
+    if (req.path.match(/^\/api\/memory\/[^/]+$/) && req.method === 'DELETE') {
+        return next();
+    }
+    if (req.path.match(/^\/api\/memory\/agents\/[^/]+\/regenerate-key$/)) {
         return next();
     }
 
