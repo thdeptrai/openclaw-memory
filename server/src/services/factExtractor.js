@@ -10,7 +10,7 @@
 const config = require('../config');
 const runtimeConfig = require('../runtimeConfig');
 const llmService = require('./llmService');
-const { USER_FACT_SYSTEM_PROMPT, AGENT_FACT_SYSTEM_PROMPT, COMBINED_SYSTEM_PROMPT } = require('./promptDefaults');
+const { COMBINED_SYSTEM_PROMPT } = require('./promptDefaults');
 
 // ============ CONTEXT WINDOW MANAGEMENT ============
 
@@ -111,134 +111,7 @@ function truncatePromptContent(prompt, maxCharsPerField) {
 
 // Timeout read dynamically from runtimeConfig
 
-// ============ PROMPTS ============
 
-// Prompt constants imported from promptDefaults.js (shared with runtimeConfig)
-// USER_FACT_SYSTEM_PROMPT, AGENT_FACT_SYSTEM_PROMPT — see promptDefaults.js
-
-const FACT_EXTRACTION_USER_TEMPLATE = `Extract atomic facts from this exchange.
-
-Each fact should be:
-- Self-contained (understandable without context)
-- Specific (include names, numbers, tools, versions)
-- Written as a statement about the {{ACTOR_TYPE}}
-- EXACTLY ONE piece of information per fact (never combine multiple facts into one)
-
-Example:
-User: "Tao thich TypeScript va tao dang song o Ha Noi"
-Correct: ["User thích dùng TypeScript", "User đang sống ở Hà Nội"]
-Wrong: ["User thích TypeScript và đang sống ở Hà Nội"]
-
-EXCHANGE:
-User: {{USER_MESSAGE}}
-Agent: {{AGENT_RESPONSE}}
-
-Return JSON:
-{
-  "facts": ["one atomic fact per entry", "another separate atomic fact"],
-  "entities": ["tech/tool/person mentioned"],
-  "topic": "main topic of the exchange"
-}
-
-Return ONLY the JSON object, no other text.`;
-
-// ============ MAIN EXTRACTION ============
-
-/**
- * Extract atomic facts from a single user-agent exchange.
- * Returns BOTH user facts and agent facts with actor attribution.
- * 
- * @param {string} userMessage - The user's message
- * @param {string} agentResponse - The agent's response
- * @param {object} options - { extractAgentFacts: false }
- * @returns {Promise<{facts: string[], entities: string[], topic: string, actorId: string, agentFacts?: string[]}>}
- */
-async function extractFacts(userMessage, agentResponse, options = {}) {
-    const { extractAgentFacts = false } = options;
-
-    // Skip trivial exchanges
-    if (userMessage.length < 15 && agentResponse.length < 50) {
-        return { facts: [], entities: [], topic: 'general', actorId: 'user' };
-    }
-
-    const results = { facts: [], entities: [], topic: 'general', actorId: 'user' };
-
-    // Extract USER facts (primary)
-    try {
-        const userResult = await callOllamaForFacts(userMessage, agentResponse, 'user');
-        results.facts = Array.isArray(userResult.facts) ? userResult.facts.filter(f => f && f.length > 10) : [];
-        results.entities = Array.isArray(userResult.entities) ? userResult.entities : [];
-        results.topic = userResult.topic || 'general';
-        results.actorId = 'user';
-    } catch (err) {
-        console.warn('⚠️ User fact extraction LLM failed, using local fallback:', err.message);
-        const fallback = localFactExtraction(userMessage, agentResponse);
-        results.facts = fallback.facts;
-        results.entities = fallback.entities;
-    }
-
-    // Extract AGENT facts (optional — for remembering what the assistant decided/recommended)
-    const agentFactMinLen = runtimeConfig.get('memory.agentFactMinResponseLength');
-    if (extractAgentFacts && agentResponse.length > agentFactMinLen) {
-        try {
-            const agentResult = await callOllamaForFacts(userMessage, agentResponse, 'agent');
-            results.agentFacts = Array.isArray(agentResult.facts) ? agentResult.facts.filter(f => f && f.length > 10) : [];
-        } catch {
-            // Agent fact extraction is optional — silently skip
-            results.agentFacts = [];
-        }
-    }
-
-    return results;
-}
-
-// ============ OLLAMA CALL ============
-
-async function callOllamaForFacts(userMessage, agentResponse, actorType = 'user') {
-    const systemPrompt = actorType === 'agent'
-        ? runtimeConfig.get('prompt.agentFactSystem') || AGENT_FACT_SYSTEM_PROMPT
-        : runtimeConfig.get('prompt.userFactSystem') || USER_FACT_SYSTEM_PROMPT;
-    const userPrompt = FACT_EXTRACTION_USER_TEMPLATE
-        .replace('{{USER_MESSAGE}}', userMessage.substring(0, 2000))
-        .replace('{{AGENT_RESPONSE}}', agentResponse.substring(0, 2000))
-        .replace('{{ACTOR_TYPE}}', actorType);
-
-    return llmService.chatJSON(systemPrompt, userPrompt, {
-        maxTokens: 2000,
-        timeout: runtimeConfig.get('factExtraction.timeout'),
-        purpose: `${actorType}_fact_extract`,
-    });
-}
-
-// ============ LOCAL FALLBACK ============
-
-function localFactExtraction(userMessage, agentResponse) {
-    const facts = [];
-    const entities = [];
-
-    const preferencePatterns = [
-        /(?:tôi|mình|tao|I)\s+(?:thích|muốn|cần|dùng|sử dụng|prefer|want|need|use|like)\s+(.+)/gi,
-        /(?:tôi|mình|tao|I)\s+(?:là|am|work|làm)\s+(.+)/gi,
-        /(?:chọn|choose|pick|selected|dùng|use)\s+(\S+)\s+(?:thay vì|instead of|rather than|hơn)\s+/gi,
-    ];
-
-    for (const pattern of preferencePatterns) {
-        const matches = userMessage.matchAll(pattern);
-        for (const match of matches) {
-            facts.push(match[0].trim());
-        }
-    }
-
-    const techPatterns = /\b(React|Vue|Angular|Node\.?js|Express|Docker|PostgreSQL|Redis|MongoDB|TypeScript|Python|Rust|Go|Kubernetes|AWS|Azure|GCP|Prisma|Sequelize|TypeORM|Qdrant|Ollama|Vite|Next\.?js|FastAPI|Django|Flask)\b/gi;
-    const techMatches = `${userMessage} ${agentResponse}`.matchAll(techPatterns);
-    for (const match of techMatches) {
-        if (!entities.includes(match[1])) {
-            entities.push(match[1]);
-        }
-    }
-
-    return { facts, entities, topic: 'general' };
-}
 
 // ============ JSON PARSER ============
 
@@ -278,10 +151,10 @@ EXISTING MEMORIES:
 Extract facts AND decide dedup actions. Return JSON:
 {
   "user_facts": [
-    { "text": "fact about the user", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null, "importance": 0.8 }
+    { "text": "fact about the user", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null, "importance": 0.8, "memory_type": "profile|event|knowledge|behavior" }
   ],
   "agent_facts": [
-    { "text": "fact about the assistant", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null, "importance": 0.7 }
+    { "text": "fact about the assistant", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null, "importance": 0.7, "memory_type": "knowledge" }
   ],
   "entities": ["tech/tool/person mentioned"],
   "topic": "main topic"
@@ -326,8 +199,8 @@ async function extractAndDedup(userMessage, agentResponse, existingMemories = ne
     });
 
     return {
-        user_facts: Array.isArray(result.user_facts) ? result.user_facts.filter(f => f && f.text && f.text.length > 10).map(f => ({ ...f, importance: parseFloat(f.importance) || 0.7 })) : [],
-        agent_facts: Array.isArray(result.agent_facts) ? result.agent_facts.filter(f => f && f.text && f.text.length > 10).map(f => ({ ...f, importance: parseFloat(f.importance) || 0.7 })) : [],
+        user_facts: Array.isArray(result.user_facts) ? result.user_facts.filter(f => f && f.text && f.text.length > 10).map(f => ({ ...f, importance: parseFloat(f.importance) || 0.7, memory_type: f.memory_type || 'knowledge' })) : [],
+        agent_facts: Array.isArray(result.agent_facts) ? result.agent_facts.filter(f => f && f.text && f.text.length > 10).map(f => ({ ...f, importance: parseFloat(f.importance) || 0.7, memory_type: f.memory_type || 'knowledge' })) : [],
         entities: Array.isArray(result.entities) ? result.entities : [],
         topic: result.topic || 'general',
         _existingMemoryEntries: memoryEntries, // pass through for action resolution
@@ -345,10 +218,10 @@ EXISTING MEMORIES:
 Extract facts from ALL exchanges AND decide dedup actions. Return JSON:
 {
   "user_facts": [
-    { "text": "fact about the user", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null, "importance": 0.8 }
+    { "text": "fact about the user", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null, "importance": 0.8, "memory_type": "profile|event|knowledge|behavior" }
   ],
   "agent_facts": [
-    { "text": "fact about the assistant", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null, "importance": 0.7 }
+    { "text": "fact about the assistant", "action": "ADD|UPDATE|NONE|DELETE", "old_memory_id": null, "importance": 0.7, "memory_type": "knowledge" }
   ],
   "entities": ["tech/tool/person mentioned"],
   "topic": "main topic"
@@ -396,8 +269,8 @@ async function extractAndDedupBatch(exchanges, existingMemories = new Map()) {
     });
 
     return {
-        user_facts: Array.isArray(result.user_facts) ? result.user_facts.filter(f => f && f.text && f.text.length > 10).map(f => ({ ...f, importance: parseFloat(f.importance) || 0.7 })) : [],
-        agent_facts: Array.isArray(result.agent_facts) ? result.agent_facts.filter(f => f && f.text && f.text.length > 10).map(f => ({ ...f, importance: parseFloat(f.importance) || 0.7 })) : [],
+        user_facts: Array.isArray(result.user_facts) ? result.user_facts.filter(f => f && f.text && f.text.length > 10).map(f => ({ ...f, importance: parseFloat(f.importance) || 0.7, memory_type: f.memory_type || 'knowledge' })) : [],
+        agent_facts: Array.isArray(result.agent_facts) ? result.agent_facts.filter(f => f && f.text && f.text.length > 10).map(f => ({ ...f, importance: parseFloat(f.importance) || 0.7, memory_type: f.memory_type || 'knowledge' })) : [],
         entities: Array.isArray(result.entities) ? result.entities : [],
         topic: result.topic || 'general',
         _existingMemoryEntries: memoryEntries,
@@ -405,15 +278,11 @@ async function extractAndDedupBatch(exchanges, existingMemories = new Map()) {
 }
 
 module.exports = {
-    extractFacts,
     extractAndDedup,
     extractAndDedupBatch,
-    localFactExtraction,
     parseJsonResponse,
     estimateTokens,
     fitToContextWindow,
-    USER_FACT_SYSTEM_PROMPT,
-    AGENT_FACT_SYSTEM_PROMPT,
     COMBINED_SYSTEM_PROMPT,
 };
 

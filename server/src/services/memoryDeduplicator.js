@@ -353,7 +353,7 @@ async function applyActions(actions, facts, embeddingMap, existingMemories, cont
 // ============ HELPERS ============
 
 async function addNewMemory(content, embedding, context, contentHash = null) {
-    const { agentId, conversationId, topic = 'general', scope = 'unknown', actorId = 'user', importance = 0.7 } = context;
+    const { agentId, conversationId, topic = 'general', scope = 'unknown', actorId = 'user', importance = 0.7, memoryType = 'knowledge' } = context;
 
     const mem = await db.addMemory({
         type: 'fact',
@@ -367,6 +367,7 @@ async function addNewMemory(content, embedding, context, contentHash = null) {
         category: null,
         contentHash,
         actorId,
+        memoryType,
     });
 
     // Link memory to conversation (many-to-many junction table)
@@ -379,6 +380,7 @@ async function addNewMemory(content, embedding, context, contentHash = null) {
                 memory_id: mem.id,
                 agent_id: agentId,
                 type: 'fact',
+                memory_type: memoryType,
                 content: content.substring(0, 500),
                 conversation_id: conversationId,
                 importance_score: Math.max(0.1, Math.min(1.0, importance)),
@@ -395,6 +397,7 @@ async function addNewMemory(content, embedding, context, contentHash = null) {
     eventBus.emit('memory:new', {
         memoryId: mem.id,
         type: 'fact',
+        memoryType,
         content: content.substring(0, 200),
         agentId,
         conversationId,

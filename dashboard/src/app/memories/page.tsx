@@ -26,6 +26,7 @@ import { toast } from "sonner";
 export default function Memories() {
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("all");
+    const [memoryTypeFilter, setMemoryTypeFilter] = useState("all");
     const [actorFilter, setActorFilter] = useState("all");
     const [statusFilter, setStatusFilter] = useState("all");
     const [isSearching, setIsSearching] = useState(false);
@@ -49,6 +50,7 @@ export default function Memories() {
 
     const filteredMemories = baseMemories.filter(m => {
         const matchesType = typeFilter === "all" || m.type === typeFilter;
+        const matchesMemoryType = memoryTypeFilter === "all" || (m.memory_type || 'knowledge') === memoryTypeFilter;
 
         let actor = "user";
         if (m.source_agent_id) actor = "assistant";
@@ -60,7 +62,7 @@ export default function Memories() {
         if (statusFilter === "active") matchesStatus = !isSuperseded;
         if (statusFilter === "superseded") matchesStatus = isSuperseded;
 
-        return matchesType && matchesActor && matchesStatus;
+        return matchesType && matchesMemoryType && matchesActor && matchesStatus;
     });
 
     // Debounced semantic search
@@ -165,6 +167,26 @@ export default function Memories() {
             case 'decision': return '🔮 ';
             case 'preference': return '⭐ ';
             default: return '💬 ';
+        }
+    };
+
+    const getMemoryTypeColor = (mt: string) => {
+        switch (mt) {
+            case 'profile': return 'bg-pink-500/10 text-pink-500 border-pink-500/20';
+            case 'event': return 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20';
+            case 'knowledge': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+            case 'behavior': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+            default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+        }
+    };
+
+    const getMemoryTypeIcon = (mt: string) => {
+        switch (mt) {
+            case 'profile': return '👤';
+            case 'event': return '📅';
+            case 'knowledge': return '📚';
+            case 'behavior': return '🔄';
+            default: return '💡';
         }
     };
 
@@ -305,6 +327,18 @@ export default function Memories() {
                                 <TabsTrigger value="superseded" className="text-xs">🔄 Superseded</TabsTrigger>
                             </TabsList>
                         </Tabs>
+
+                        <div className="h-6 w-px bg-border" />
+
+                        <Tabs value={memoryTypeFilter} onValueChange={setMemoryTypeFilter} className="w-[400px]">
+                            <TabsList className="grid w-full grid-cols-5 h-9">
+                                <TabsTrigger value="all" className="text-xs">All Types</TabsTrigger>
+                                <TabsTrigger value="profile" className="text-xs">👤 Profile</TabsTrigger>
+                                <TabsTrigger value="event" className="text-xs">📅 Event</TabsTrigger>
+                                <TabsTrigger value="knowledge" className="text-xs">📚 Know</TabsTrigger>
+                                <TabsTrigger value="behavior" className="text-xs">🔄 Behav</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
                     </div>
                 </div>
                 <CardContent className="p-0">
@@ -336,10 +370,18 @@ export default function Memories() {
                                                         <Badge variant="outline" className={`${actorClass} text-[10px] shrink-0 uppercase`}>
                                                             {actorBadge}
                                                         </Badge>
+                                                        <Badge variant="outline" className={`${getMemoryTypeColor(mem.memory_type || 'knowledge')} text-[10px] shrink-0 uppercase`}>
+                                                            {getMemoryTypeIcon(mem.memory_type || 'knowledge')} {mem.memory_type || 'knowledge'}
+                                                        </Badge>
                                                         {mem.agent_name && (
                                                             <Badge variant="secondary" className="text-[10px] shrink-0">Agent: {mem.agent_name}</Badge>
                                                         )}
                                                         <Badge variant="secondary" className="text-[10px] shrink-0">Topic: {mem.topic || 'general'}</Badge>
+                                                        {(mem.reinforcement_count > 0) && (
+                                                            <Badge variant="outline" className="text-[10px] shrink-0 bg-indigo-500/10 text-indigo-500 border-indigo-500/20">
+                                                                🔁 {mem.reinforcement_count}x recalled
+                                                            </Badge>
+                                                        )}
 
                                                         {isSuperseded && (
                                                             <Badge variant="outline" className="border-red-500/30 text-red-500 bg-red-500/5 text-[10px] shrink-0">🔄 SUPERSEDED</Badge>

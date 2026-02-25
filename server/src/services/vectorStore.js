@@ -48,6 +48,10 @@ async function initCollection() {
                 field_name: 'scope',
                 field_schema: 'keyword',
             });
+            await client.createPayloadIndex(COLLECTION, {
+                field_name: 'memory_type',
+                field_schema: 'keyword',
+            });
 
             console.log(`✅ Qdrant collection "${COLLECTION}" created`);
         } else {

@@ -9,82 +9,13 @@ const factExtractor = require('./factExtractor');
 const memoryDeduplicator = require('./memoryDeduplicator');
 const graphService = require('./graphService');
 const reranker = require('./reranker');
+const llmService = require('./llmService');
+const categoryService = require('./categoryService');
 
 // Lazy-load to avoid circular dependency
 let intelligenceService = null;
 
-// ====================== CONTENT QUALITY SCORING ======================
 
-// Patterns that indicate low-value content (greetings, filler)
-const LOW_VALUE_PATTERNS = [
-    /^(xin\s+)?ch[àa]o/i,
-    /^hi\b/i, /^hello\b/i, /^hey\b/i,
-    /^(ok|okay|ừ|uh|hmm|à|ờ)\s*$/i,
-    /^(cảm ơn|thank|thanks)\s*$/i,
-];
-
-// Patterns that indicate preference/decision content (high value)
-const PREFERENCE_PATTERNS = [
-    /th[íi]ch\s+(d[ùu]ng|dùng|style|kiểu)/i,
-    /th[íi]ch\s+.*h[ơo]n/i,
-    /s[ởo]\s*th[íi]ch/i,
-    /prefer/i,
-    /ghi\s+nh[ậa]n.*s[ởo]\s*th[íi]ch/i,
-    /ghi\s+nh[ậa]n/i,
-];
-
-// Patterns that indicate technical decision content
-const DECISION_PATTERNS = [
-    /đề\s*xuất/i, /khuyên\s*dùng/i,
-    /nên\s*(dùng|sử\s*dụng|chọn)/i,
-    /recommend/i, /suggest/i,
-    /setup|config|cấu\s*hình/i,
-];
-
-/**
- * Score content quality (0.0 = garbage, 1.0 = critical info)
- */
-function scoreContentImportance(userMsg, agentResp) {
-    const combined = `${userMsg} ${agentResp}`;
-
-    // Greeting/filler = very low
-    if (LOW_VALUE_PATTERNS.some(p => p.test(userMsg.trim()))) {
-        // But if agent response is substantial, medium score
-        if (agentResp.length > 100) return 0.3;
-        return 0.1;
-    }
-
-    let score = 0.5; // base
-
-    // Preference statements = high
-    if (PREFERENCE_PATTERNS.some(p => p.test(combined))) score = Math.max(score, 0.9);
-
-    // Technical decisions = high
-    if (DECISION_PATTERNS.some(p => p.test(combined))) score = Math.max(score, 0.8);
-
-    // Long, detailed responses = boost
-    if (agentResp.length > 200) score = Math.min(1.0, score + 0.1);
-    if (agentResp.length > 400) score = Math.min(1.0, score + 0.1);
-
-    return score;
-}
-
-/**
- * Detect if content contains preference tags
- */
-function extractContentTags(userMsg, agentResp) {
-    const combined = `${userMsg} ${agentResp}`;
-    const tags = [];
-    if (PREFERENCE_PATTERNS.some(p => p.test(combined))) tags.push('preference');
-    if (DECISION_PATTERNS.some(p => p.test(combined))) tags.push('decision');
-    if (/database|postgresql|mysql|mongo|redis/i.test(combined)) tags.push('database');
-    if (/deploy|docker|server|nginx|ci\/cd/i.test(combined)) tags.push('devops');
-    if (/design|ui|ux|color|font|animation|layout/i.test(combined)) tags.push('design');
-    if (/security|auth|ssl|firewall|encrypt/i.test(combined)) tags.push('security');
-    if (/test|jest|coverage|qa/i.test(combined)) tags.push('testing');
-    if (/performance|cache|optimize|speed/i.test(combined)) tags.push('performance');
-    return tags;
-}
 function getIntelligenceService() {
     if (!intelligenceService) {
         intelligenceService = require('./intelligenceService');
@@ -147,10 +78,6 @@ class MemoryService {
             sequenceNum: exchange.sequence_num,
         });
 
-        // Score content importance and extract tags
-        const importanceScore = scoreContentImportance(userMessage, agentResponse);
-        const contentTags = extractContentTags(userMessage, agentResponse);
-
         // Mem0 style: Do NOT embed raw exchanges into Qdrant.
         // Only extracted facts get embedded (via batchProcessor → memoryDeduplicator).
         // Exchanges are kept in Postgres only (for history/audit).
@@ -183,6 +110,7 @@ class MemoryService {
         const results = {
             semanticMemories: [],  // facts, decisions, insights, preferences only
             crossAgentMemories: [],
+            categorySummaries: [],
             summaries: [],
             conversationProfile: null,
         };
@@ -206,6 +134,29 @@ class MemoryService {
             .replace(/[^\w\sàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '')
             .split(/\s+/)
             .filter(w => w.length > 2);
+
+        // === Smart Retrieval: Query Rewriting (opt-in, +1 LLM call) ===
+        if (runtimeConfig.get('retrieval.queryRewriting') && conversationId) {
+            try {
+                const recentExchanges = await db.getRecentExchanges(conversationId, 3);
+                if (recentExchanges.length > 0) {
+                    const historyContext = recentExchanges.map(e =>
+                        `User: ${(e.user_message || '').substring(0, 200)}\nAgent: ${(e.agent_response || '').substring(0, 200)}`
+                    ).join('\n---\n');
+                    const rewriteResult = await llmService.chatJSON(
+                        `You rewrite queries to be self-contained by resolving pronouns, references, and ambiguities using conversation history. Return JSON: {"rewritten_query": "..."}`,
+                        `RECENT CONVERSATION:\n${historyContext}\n\nORIGINAL QUERY: ${enrichedQuery}\n\nRewrite this query to be fully self-contained. If already clear, return the original.`,
+                        { maxTokens: 200, timeout: 10000, purpose: 'query_rewrite' }
+                    );
+                    if (rewriteResult.rewritten_query && rewriteResult.rewritten_query.length > 5) {
+                        enrichedQuery = rewriteResult.rewritten_query;
+                        console.log(`🔄 Query rewritten: "${query}" → "${enrichedQuery}"`);
+                    }
+                }
+            } catch (err) {
+                console.warn('⚠️ Query rewriting failed:', err.message);
+            }
+        }
 
         // 1. Semantic search via Qdrant — use ENRICHED query for better matching
         // Two-pass strategy: when topic is active, first search with topic filter,
@@ -260,7 +211,6 @@ class MemoryService {
                 const content = (r.payload.content || '').toLowerCase();
                 const userMsg = (r.payload.user_message || '').toLowerCase();
                 const importance = r.payload.importance_score || 0.5;
-                const tags = r.payload.content_tags || [];
 
                 // Penalize low-importance (greetings)
                 if (importance < 0.2) {
@@ -280,11 +230,6 @@ class MemoryService {
                 if (queryKeywords.length > 0) {
                     const keywordRatio = keywordHits / queryKeywords.length;
                     finalScore += keywordRatio * 0.15; // up to +0.15 for keyword match
-                }
-
-                // Preference query boost: boost results tagged as preference
-                if (isPreferenceQuery && tags.includes('preference')) {
-                    finalScore += 0.2;
                 }
 
                 // Agent filter boost: if agentId specified, boost matching agent
@@ -339,10 +284,10 @@ class MemoryService {
                     content: r.payload.content,
                     userMessage: r.payload.user_message,
                     type: r.payload.type,
+                    memoryType: r.payload.memory_type || 'knowledge',
                     agentId: r.payload.agent_id,
                     conversationId: r.payload.conversation_id,
                     importanceScore: importance,
-                    contentTags: tags,
                     topic: memTopic,
                     scope: memScope,
                     createdAt: r.payload.created_at,
@@ -381,10 +326,11 @@ class MemoryService {
             rankedResults.sort((a, b) => b.score - a.score);
             results.semanticMemories = rankedResults.slice(0, limit);
 
-            // Boost importance of accessed memories
+            // Boost importance of accessed memories + reinforcement
             const intel = getIntelligenceService();
             for (const mem of results.semanticMemories) {
                 intel.boostOnAccess(mem.id).catch(() => { });
+                db.reinforceMemory(mem.id).catch(() => { });
             }
         } catch (err) {
             console.warn('⚠️ Semantic search failed:', err.message);
@@ -407,7 +353,23 @@ class MemoryService {
             }));
         })() : Promise.resolve());
 
-        // Task B: Cross-agent memories (permission-aware)
+        // Task B: Category summaries (always fetch if available)
+        parallelTasks.push(agentId ? (async () => {
+            try {
+                const categories = await categoryService.getCategoriesWithCache(agentId);
+                const withSummaries = categories.filter(c => c.summary && c.summary.length > 0);
+                if (withSummaries.length > 0) {
+                    results.categorySummaries = withSummaries.map(c => ({
+                        name: c.name,
+                        summary: c.summary,
+                        memoryCount: c.memory_count,
+                        updatedAt: c.summary_updated_at,
+                    }));
+                }
+            } catch { /* categories may not exist yet */ }
+        })() : Promise.resolve());
+
+        // Task C: Cross-agent memories (permission-aware)
         parallelTasks.push((includeOtherAgents && agentId) ? (async () => {
             try {
                 const intel = getIntelligenceService();
@@ -564,7 +526,5 @@ class MemoryService {
         return results.slice(0, limit);
     }
 }
-
-module.exports = new MemoryService();
 
 module.exports = new MemoryService();

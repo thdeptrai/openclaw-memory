@@ -38,7 +38,6 @@ const defaults = {
 
     // Scheduler Intervals (ms)
     'scheduler.memoryDecay': 6 * 60 * 60 * 1000,
-    'scheduler.duplicateDetection': 2 * 60 * 60 * 1000,
 
 
     // Batch Processing (reduces LLM API calls for cloud providers)
@@ -48,13 +47,17 @@ const defaults = {
 
     // MiniMax Context Window
     'minimax.maxInputTokens': 1600,  // ~2013 total - 400 output reserve
+
+    // Categories & Retrieval
+    'categories.enabled': true,
+    'categories.autoSummary': false,  // LLM-powered category summaries (adds LLM calls)
+    'retrieval.queryRewriting': false,
+    'retrieval.sufficiencyCheck': false,
 };
 
 // Prompt defaults — loaded from separate file to avoid circular dependency with factExtractor
 const promptDefaults = require('./services/promptDefaults');
 const _promptDefaults = {
-    'prompt.userFactSystem': promptDefaults.USER_FACT_SYSTEM_PROMPT,
-    'prompt.agentFactSystem': promptDefaults.AGENT_FACT_SYSTEM_PROMPT,
     'prompt.combinedSystem': promptDefaults.COMBINED_SYSTEM_PROMPT,
 };
 // Merge prompt defaults into defaults and store
@@ -90,11 +93,14 @@ const settingsMeta = {
     'memory.agentFactMinResponseLength': { label: 'Agent Fact Min Response Length', group: 'Memory', type: 'number', min: 10, max: 500, description: 'Minimum agent response length (chars) to trigger agent fact extraction' },
 
     'scheduler.memoryDecay': { label: 'Memory Decay', group: 'Scheduler', type: 'number', min: 60000, max: 86400000, unit: 'ms', description: 'How often to apply memory importance decay' },
-    'scheduler.duplicateDetection': { label: 'Duplicate Detection', group: 'Scheduler', type: 'number', min: 60000, max: 86400000, unit: 'ms', description: 'How often to scan for and merge duplicate memories' },
 
-    'prompt.userFactSystem': { label: 'User Fact Extraction Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for extracting facts about the USER from conversations (Ollama path)' },
-    'prompt.agentFactSystem': { label: 'Agent Fact Extraction Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for extracting facts about the AGENT/ASSISTANT (Ollama path)' },
-    'prompt.combinedSystem': { label: 'Combined Extract+Dedup Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for combined fact extraction + deduplication (MiniMax/batch path)' },
+
+    'prompt.combinedSystem': { label: 'Combined Extract+Dedup Prompt', group: 'Prompts', type: 'textarea', description: 'System prompt for combined fact extraction + deduplication (all providers)' },
+
+    'categories.enabled': { label: 'Memory Categories', group: 'Processing', type: 'boolean', description: 'Enable automatic memory categorization (uses keyword heuristics, no extra LLM calls)' },
+    'categories.autoSummary': { label: 'Category Auto-Summary', group: 'Processing', type: 'boolean', description: 'Generate LLM-powered summaries for categories (adds 1 LLM call per category with memories)' },
+    'retrieval.queryRewriting': { label: 'Query Rewriting', group: 'Processing', type: 'boolean', description: 'Enable LLM-based query rewriting for better recall (adds 1 LLM call per recall)' },
+    'retrieval.sufficiencyCheck': { label: 'Sufficiency Check', group: 'Processing', type: 'boolean', description: 'Enable category-level sufficiency checking before item search (adds 1 LLM call per recall)' },
 };
 
 module.exports = {

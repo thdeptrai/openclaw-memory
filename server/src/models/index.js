@@ -197,14 +197,14 @@ async function getExchangeCount(conversationId) {
 
 // ==================== MEMORIES ====================
 
-async function addMemory({ type, content, sourceConversationId, sourceAgentId, importanceScore = 0.5, tags = [], metadata = {}, topic = 'general', scope = 'unknown', category = null, contentHash = null, actorId = 'user' }) {
+async function addMemory({ type, content, sourceConversationId, sourceAgentId, importanceScore = 0.5, tags = [], metadata = {}, topic = 'general', scope = 'unknown', category = null, contentHash = null, actorId = 'user', memoryType = 'knowledge' }) {
     // Auto-generate content hash if not provided (MD5 for O(1) exact-match dedup)
     const hash = contentHash || require('crypto').createHash('md5').update(content).digest('hex');
     const result = await pool.query(
-        `INSERT INTO memories (type, content, source_conversation_id, source_agent_id, importance_score, tags, metadata, topic, scope, category, content_hash, actor_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        `INSERT INTO memories (type, content, source_conversation_id, source_agent_id, importance_score, tags, metadata, topic, scope, category, content_hash, actor_id, memory_type)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
      RETURNING *`,
-        [type, content, sourceConversationId, sourceAgentId, importanceScore, tags, JSON.stringify(metadata), topic, scope, category, hash, actorId]
+        [type, content, sourceConversationId, sourceAgentId, importanceScore, tags, JSON.stringify(metadata), topic, scope, category, hash, actorId, memoryType]
     );
     return result.rows[0];
 }
@@ -495,6 +495,66 @@ async function query(sql, params) {
     return pool.query(sql, params);
 }
 
+// ==================== CATEGORIES ====================
+
+async function getCategories(agentId) {
+    const result = await pool.query(
+        'SELECT * FROM memory_categories WHERE agent_id = $1 ORDER BY name',
+        [agentId]
+    );
+    return result.rows;
+}
+
+async function addCategory(agentId, name, description = '') {
+    const result = await pool.query(
+        `INSERT INTO memory_categories (agent_id, name, description)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (agent_id, name) DO NOTHING
+         RETURNING *`,
+        [agentId, name, description]
+    );
+    return result.rows[0] || null;
+}
+
+async function linkMemoryToCategory(memoryId, categoryId) {
+    if (!memoryId || !categoryId) return;
+    await pool.query(
+        `INSERT INTO memory_category_items (memory_id, category_id)
+         VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [memoryId, categoryId]
+    );
+    // Increment memory count
+    await pool.query(
+        'UPDATE memory_categories SET memory_count = memory_count + 1 WHERE id = $1',
+        [categoryId]
+    );
+}
+
+async function updateCategorySummary(categoryId, summary) {
+    await pool.query(
+        'UPDATE memory_categories SET summary = $1, summary_updated_at = NOW() WHERE id = $2',
+        [summary, categoryId]
+    );
+}
+
+async function getCategoryMemories(categoryId, limit = 50) {
+    const result = await pool.query(
+        `SELECT m.* FROM memories m
+         JOIN memory_category_items mc ON mc.memory_id = m.id
+         WHERE mc.category_id = $1 AND m.superseded_by IS NULL
+         ORDER BY m.importance_score DESC, m.created_at DESC LIMIT $2`,
+        [categoryId, limit]
+    );
+    return result.rows;
+}
+
+async function reinforceMemory(memoryId) {
+    await pool.query(
+        'UPDATE memories SET reinforcement_count = COALESCE(reinforcement_count, 0) + 1 WHERE id = $1',
+        [memoryId]
+    );
+}
+
 async function close() {
     await pool.end();
 }
@@ -534,6 +594,13 @@ module.exports = {
     searchMemories,
     getActiveMemoryIds,
     updateMemoryAccess,
+    reinforceMemory,
+    // Categories
+    getCategories,
+    addCategory,
+    linkMemoryToCategory,
+    updateCategorySummary,
+    getCategoryMemories,
     // Summaries
     addSummary,
     addSummaryWithMemories,

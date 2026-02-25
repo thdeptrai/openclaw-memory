@@ -26,12 +26,6 @@ class Scheduler {
         this.schedule('Memory Decay', decayMs, async () => {
             await intelligenceService.applyDecay();
         });
-
-        // 2. Duplicate detection
-        const dedupMs = runtimeConfig.get('scheduler.duplicateDetection');
-        this.schedule('Duplicate Detection', dedupMs, async () => {
-            await intelligenceService.detectAndMergeDuplicates();
-        });
     }
 
     /**
@@ -60,7 +54,6 @@ class Scheduler {
     async runAll() {
         console.log('🔄 Running all intelligence tasks...');
         await intelligenceService.applyDecay();
-        await intelligenceService.detectAndMergeDuplicates();
         console.log('✅ All intelligence tasks complete');
     }
 

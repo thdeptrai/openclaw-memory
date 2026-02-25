@@ -20,6 +20,7 @@ const vectorStore = require('./vectorStore');
 const graphService = require('./graphService');
 const db = require('../models');
 const eventBus = require('./eventBus');
+const categoryService = require('./categoryService');
 
 // ============ QUEUE ============
 
@@ -181,6 +182,7 @@ async function processBatch(agentId, entries) {
             entities,
             actorId: factEntry.actorId,
             importance: factEntry.importance || 0.7,
+            memoryType: factEntry.memory_type || 'knowledge',
         };
 
         if (action === 'NONE') {
@@ -191,7 +193,10 @@ async function processBatch(agentId, entries) {
         if (action === 'ADD') {
             try {
                 const emb = await embeddingService.generateEmbedding(factEntry.text);
-                await memoryDeduplicator.addNewMemoryDirect(factEntry.text, emb, context);
+                const newMem = await memoryDeduplicator.addNewMemoryDirect(factEntry.text, emb, context);
+                if (newMem) {
+                    categoryService.assignCategories(newMem.id, agentId, factEntry.text, factEntry.memory_type || 'knowledge').catch(() => { });
+                }
                 added++;
             } catch (err) {
                 console.warn(`⚠️ Batch: failed to add fact: ${err.message}`);
@@ -255,140 +260,109 @@ async function processBatch(agentId, entries) {
 }
 
 /**
- * Process a single exchange immediately (legacy/Ollama fallback).
- * This is the old setImmediate behavior, extracted here for reuse.
+ * Process a single exchange immediately (legacy/fallback).
+ * Uses same extractAndDedup path as batch mode.
  */
 async function processImmediately(entry) {
     const { agentId, conversationId, userMessage, agentResponse, topic } = entry;
     const t0 = Date.now();
-    const provider = runtimeConfig.get('llm.provider') || 'minimax';
 
     try {
-        if (provider === 'minimax') {
-            // Combined extract + dedup (1 LLM call)
-            let existingMemories = new Map();
-            try {
-                const contextEmb = await embeddingService.generateEmbedding(
-                    userMessage.substring(0, 500) + ' ' + agentResponse.substring(0, 500)
-                );
-                const similar = await vectorStore.searchSimilar(contextEmb, {
-                    limit: 15,
-                    agentId,
-                    type: 'fact',
-                    scoreThreshold: 0.35,
+        // === Step 1: Collect existing memories for dedup context ===
+        let existingMemories = new Map();
+        try {
+            const contextEmb = await embeddingService.generateEmbedding(
+                userMessage.substring(0, 500) + ' ' + agentResponse.substring(0, 500)
+            );
+            const similar = await vectorStore.searchSimilar(contextEmb, {
+                limit: 15,
+                agentId,
+                type: 'fact',
+                scoreThreshold: 0.35,
+            });
+            for (const hit of similar) {
+                existingMemories.set(hit.id, {
+                    id: hit.id,
+                    content: hit.payload?.content || '',
+                    type: hit.payload?.type || 'fact',
                 });
-                for (const hit of similar) {
-                    existingMemories.set(hit.id, {
-                        id: hit.id,
-                        content: hit.payload?.content || '',
-                        type: hit.payload?.type || 'fact',
-                    });
-                }
-            } catch (err) {
-                console.warn('⚠️ Existing memory search failed:', err.message);
             }
+        } catch (err) {
+            console.warn('⚠️ Existing memory search failed:', err.message);
+        }
 
-            const combinedResult = await factExtractor.extractAndDedup(userMessage, agentResponse, existingMemories);
-            const { user_facts, agent_facts, entities, topic: extractedTopic, _existingMemoryEntries } = combinedResult;
+        // === Step 2: Combined extract + dedup (1 LLM call) ===
+        const combinedResult = await factExtractor.extractAndDedup(userMessage, agentResponse, existingMemories);
+        const { user_facts, agent_facts, entities, topic: extractedTopic, _existingMemoryEntries } = combinedResult;
 
-            const shouldExtractAgentFacts = runtimeConfig.get('factExtraction.extractAgentFacts');
-            const allFacts = [
-                ...user_facts.map(f => ({ ...f, actorId: 'user' })),
-                ...(shouldExtractAgentFacts ? agent_facts.map(f => ({ ...f, actorId: 'assistant' })) : []),
-            ];
+        const shouldExtractAgentFacts = runtimeConfig.get('factExtraction.extractAgentFacts');
+        const allFacts = [
+            ...user_facts.map(f => ({ ...f, actorId: 'user' })),
+            ...(shouldExtractAgentFacts ? agent_facts.map(f => ({ ...f, actorId: 'assistant' })) : []),
+        ];
 
-            let added = 0, updated = 0, deleted = 0, skipped = 0;
-            for (const factEntry of allFacts) {
-                const action = (factEntry.action || 'ADD').toUpperCase();
-                const context = {
-                    agentId, conversationId,
-                    topic: extractedTopic || topic || 'general',
-                    scope: 'unknown', entities,
-                    actorId: factEntry.actorId,
-                    importance: factEntry.importance || 0.7,
-                };
+        let added = 0, updated = 0, deleted = 0, skipped = 0;
+        for (const factEntry of allFacts) {
+            const action = (factEntry.action || 'ADD').toUpperCase();
+            const context = {
+                agentId, conversationId,
+                topic: extractedTopic || topic || 'general',
+                scope: 'unknown', entities,
+                actorId: factEntry.actorId,
+                importance: factEntry.importance || 0.7,
+                memoryType: factEntry.memory_type || 'knowledge',
+            };
 
-                if (action === 'NONE') { skipped++; continue; }
+            if (action === 'NONE') { skipped++; continue; }
 
-                if (action === 'ADD') {
-                    try {
+            if (action === 'ADD') {
+                try {
+                    const emb = await embeddingService.generateEmbedding(factEntry.text);
+                    const newMem = await memoryDeduplicator.addNewMemoryDirect(factEntry.text, emb, context);
+                    if (newMem) {
+                        categoryService.assignCategories(newMem.id, agentId, factEntry.text, factEntry.memory_type || 'knowledge').catch(() => { });
+                    }
+                    added++;
+                } catch (err) { console.warn(`⚠️ Failed to add fact: ${err.message}`); }
+            } else if (action === 'UPDATE' && factEntry.old_memory_id != null) {
+                try {
+                    const memIdx = parseInt(factEntry.old_memory_id);
+                    if (_existingMemoryEntries && _existingMemoryEntries[memIdx]) {
+                        const [oldUuid] = _existingMemoryEntries[memIdx];
+                        const emb = await embeddingService.generateEmbedding(factEntry.text);
+                        const newMem = await memoryDeduplicator.addNewMemoryDirect(factEntry.text, emb, context);
+                        if (newMem) {
+                            await db.supersedeMemory(oldUuid, newMem.id);
+                            await db.migrateMemoryLinks(oldUuid, newMem.id).catch(() => { });
+                            await vectorStore.deleteVector(oldUuid);
+                            updated++;
+                        }
+                    } else {
                         const emb = await embeddingService.generateEmbedding(factEntry.text);
                         await memoryDeduplicator.addNewMemoryDirect(factEntry.text, emb, context);
                         added++;
-                    } catch (err) { console.warn(`⚠️ Failed to add fact: ${err.message}`); }
-                } else if (action === 'UPDATE' && factEntry.old_memory_id != null) {
-                    try {
-                        const memIdx = parseInt(factEntry.old_memory_id);
-                        if (_existingMemoryEntries && _existingMemoryEntries[memIdx]) {
-                            const [oldUuid] = _existingMemoryEntries[memIdx];
-                            const emb = await embeddingService.generateEmbedding(factEntry.text);
-                            const newMem = await memoryDeduplicator.addNewMemoryDirect(factEntry.text, emb, context);
-                            if (newMem) {
-                                await db.supersedeMemory(oldUuid, newMem.id);
-                                await db.migrateMemoryLinks(oldUuid, newMem.id).catch(() => { });
-                                await vectorStore.deleteVector(oldUuid);
-                                updated++;
-                            }
-                        } else {
-                            const emb = await embeddingService.generateEmbedding(factEntry.text);
-                            await memoryDeduplicator.addNewMemoryDirect(factEntry.text, emb, context);
-                            added++;
-                        }
-                    } catch (err) { console.warn(`⚠️ Failed to update fact: ${err.message}`); }
-                } else if (action === 'DELETE' && factEntry.old_memory_id != null) {
-                    try {
-                        const memIdx = parseInt(factEntry.old_memory_id);
-                        if (_existingMemoryEntries && _existingMemoryEntries[memIdx]) {
-                            const [oldUuid] = _existingMemoryEntries[memIdx];
-                            await db.supersedeMemory(oldUuid, null);
-                            await vectorStore.deleteVector(oldUuid);
-                            deleted++;
-                        }
-                    } catch (err) { console.warn(`⚠️ Failed to delete fact: ${err.message}`); }
-                }
-            }
-
-            const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-            console.log(`  ✅ Combined extract+dedup: ${allFacts.length} facts → ${added} add, ${updated} upd, ${deleted} del, ${skipped} skip (${elapsed}s)`);
-
-            if (runtimeConfig.get('graph.enabled') && entities.length > 0) {
+                    }
+                } catch (err) { console.warn(`⚠️ Failed to update fact: ${err.message}`); }
+            } else if (action === 'DELETE' && factEntry.old_memory_id != null) {
                 try {
-                    await graphService.processExtractedGraph(entities, allFacts.map(f => f.text), agentId);
-                } catch (graphErr) { console.warn('⚠️ Graph processing error:', graphErr.message); }
+                    const memIdx = parseInt(factEntry.old_memory_id);
+                    if (_existingMemoryEntries && _existingMemoryEntries[memIdx]) {
+                        const [oldUuid] = _existingMemoryEntries[memIdx];
+                        await db.supersedeMemory(oldUuid, null);
+                        await vectorStore.deleteVector(oldUuid);
+                        deleted++;
+                    }
+                } catch (err) { console.warn(`⚠️ Failed to delete fact: ${err.message}`); }
             }
-        } else {
-            // Ollama: separate extract + dedup
-            const extractResult = await factExtractor.extractFacts(userMessage, agentResponse, { extractAgentFacts: runtimeConfig.get('factExtraction.extractAgentFacts') });
-            const { facts, entities, topic: extractedTopic, actorId: factActorId, agentFacts } = extractResult;
+        }
 
-            if (facts.length > 0) {
-                const dedupResult = await memoryDeduplicator.deduplicateAndStore(facts, {
-                    agentId, conversationId,
-                    topic: extractedTopic || topic || 'general',
-                    scope: 'unknown', entities,
-                    actorId: factActorId || 'user',
-                });
-                const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-                console.log(`  ✅ User facts: ${facts.length} → ${dedupResult.added} add, ${dedupResult.updated} upd (${elapsed}s)`);
+        const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+        console.log(`  ✅ Combined extract+dedup: ${allFacts.length} facts → ${added} add, ${updated} upd, ${deleted} del, ${skipped} skip (${elapsed}s)`);
 
-                if (runtimeConfig.get('graph.enabled') && entities.length > 0) {
-                    try { await graphService.processExtractedGraph(entities, facts, agentId); }
-                    catch (graphErr) { console.warn('⚠️ Graph error:', graphErr.message); }
-                }
-            }
-
-            if (agentFacts && agentFacts.length > 0) {
-                try {
-                    await memoryDeduplicator.deduplicateAndStore(agentFacts, {
-                        agentId, conversationId,
-                        topic: extractedTopic || topic || 'general',
-                        scope: 'unknown', entities,
-                        actorId: 'assistant',
-                    });
-                } catch (err) { console.warn('⚠️ Agent fact error:', err.message); }
-            }
-
-
+        if (runtimeConfig.get('graph.enabled') && entities.length > 0) {
+            try {
+                await graphService.processExtractedGraph(entities, allFacts.map(f => f.text), agentId);
+            } catch (graphErr) { console.warn('⚠️ Graph processing error:', graphErr.message); }
         }
     } catch (err) {
         console.error('⚠️ Fact extraction pipeline error:', err.message);

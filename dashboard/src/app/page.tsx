@@ -276,6 +276,7 @@ export default function Dashboard() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[80px]">Type</TableHead>
+                      <TableHead className="w-[80px]">Category</TableHead>
                       <TableHead>Content</TableHead>
                       <TableHead className="w-[80px]">Agent</TableHead>
                       <TableHead className="text-right w-[90px]">Time</TableHead>
@@ -288,15 +289,27 @@ export default function Dashboard() {
                           <Badge
                             variant="outline"
                             className={`text-[9px] ${mem.type === "fact"
-                                ? "text-emerald-500 border-emerald-500/30"
-                                : mem.type === "decision"
-                                  ? "text-blue-500 border-blue-500/30"
-                                  : mem.type === "preference"
-                                    ? "text-amber-500 border-amber-500/30"
-                                    : "text-muted-foreground"
+                              ? "text-emerald-500 border-emerald-500/30"
+                              : mem.type === "decision"
+                                ? "text-blue-500 border-blue-500/30"
+                                : mem.type === "preference"
+                                  ? "text-amber-500 border-amber-500/30"
+                                  : "text-muted-foreground"
                               }`}
                           >
                             {mem.type?.toUpperCase() || "MEMORY"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={`text-[9px] ${(mem.memory_type || 'knowledge') === 'profile' ? 'text-pink-500 border-pink-500/30' :
+                                (mem.memory_type || 'knowledge') === 'event' ? 'text-cyan-500 border-cyan-500/30' :
+                                  (mem.memory_type || 'knowledge') === 'behavior' ? 'text-amber-500 border-amber-500/30' :
+                                    'text-emerald-500 border-emerald-500/30'
+                              }`}
+                          >
+                            {(mem.memory_type || 'knowledge').toUpperCase()}
                           </Badge>
                         </TableCell>
                         <TableCell>

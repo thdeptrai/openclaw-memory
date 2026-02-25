@@ -21,6 +21,7 @@ import { toast } from "sonner";
 interface RecallResult {
     semanticMemories?: any[];
     crossAgentMemories?: any[];
+    categorySummaries?: any[];
     conversationProfile?: Record<string, any>;
 }
 
@@ -107,6 +108,7 @@ export default function RecallTest() {
     const sections = [
         { key: "semanticMemories" as const, label: "🧠 Semantic Memories", description: "Extracted facts via vector search" },
         { key: "crossAgentMemories" as const, label: "🔗 Cross-Agent Memories", description: "Memories from other agents" },
+        { key: "categorySummaries" as const, label: "📂 Category Summaries", description: "High-level summaries by category" },
     ];
 
     const renderScore = (score: number | undefined) => {
@@ -128,6 +130,15 @@ export default function RecallTest() {
             <div key={item.id || Math.random()} className="border rounded-lg p-4 bg-muted/20 hover:bg-muted/40 transition-colors space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                     {renderScore(item.score)}
+                    {(item.memoryType || payload.memory_type) && (
+                        <Badge variant="outline" className={`text-[10px] ${(item.memoryType || payload.memory_type) === 'profile' ? 'bg-pink-500/10 text-pink-500 border-pink-500/20' :
+                                (item.memoryType || payload.memory_type) === 'event' ? 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20' :
+                                    (item.memoryType || payload.memory_type) === 'behavior' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                        'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                            }`}>
+                            {item.memoryType || payload.memory_type || 'knowledge'}
+                        </Badge>
+                    )}
                     {itemAgentId && (
                         <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-500 border-purple-500/20">{itemAgentId}</Badge>
                     )}
@@ -309,6 +320,30 @@ export default function RecallTest() {
                                     {sections.map(({ key, label }) => {
                                         const items = results[key];
                                         if (!Array.isArray(items) || items.length === 0) return null;
+                                        // Category summaries render differently
+                                        if (key === 'categorySummaries') {
+                                            return (
+                                                <div key={key} className="space-y-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="font-semibold text-sm">{label}</h4>
+                                                        <Badge variant="secondary" className="text-[10px]">{items.length}</Badge>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        {items.map((cat: any, i: number) => (
+                                                            <div key={i} className="border rounded-lg p-4 bg-muted/20 space-y-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Badge variant="outline" className="text-[10px] bg-indigo-500/10 text-indigo-500 border-indigo-500/20">
+                                                                        📂 {cat.name}
+                                                                    </Badge>
+                                                                    <span className="text-[10px] text-muted-foreground">{cat.memoryCount} memories</span>
+                                                                </div>
+                                                                <p className="text-sm text-foreground">{cat.summary}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
                                         return (
                                             <div key={key} className="space-y-3">
                                                 <div className="flex items-center gap-2">
