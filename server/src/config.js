@@ -13,9 +13,9 @@ module.exports = {
   postgres: {
     host: process.env.PG_HOST || 'localhost',
     port: parseInt(process.env.PG_PORT || '5432'),
-    user: process.env.PG_USER || 'openclaw',
-    password: process.env.PG_PASSWORD || 'openclaw_secret',
-    database: process.env.PG_DATABASE || 'openclaw_memory',
+    user: process.env.PG_USER || 'memolo',
+    password: process.env.PG_PASSWORD || 'memolo_secret',
+    database: process.env.PG_DATABASE || 'memolo',
   },
 
   qdrant: {

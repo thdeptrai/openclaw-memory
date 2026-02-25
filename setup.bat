@@ -191,9 +191,9 @@ echo.
 echo MEMOLO_MASTER_KEY=!MASTER_KEY!
 echo PORT=7437
 echo.
-echo PG_USER=openclaw
+echo PG_USER=memolo
 echo PG_PASSWORD=!PG_PASS!
-echo PG_DATABASE=openclaw_memory
+echo PG_DATABASE=memolo
 echo.
 echo SUMMARIZE_AFTER_EXCHANGES=5
 echo EMBEDDING_DIMENSIONS=4096
@@ -240,7 +240,7 @@ if %errorlevel% equ 0 (
     echo ⚠️  Memolo API      → starting...
 )
 
-docker exec memolo-postgres pg_isready -U openclaw >nul 2>&1
+docker exec memolo-postgres pg_isready -U memolo >nul 2>&1
 if %errorlevel% equ 0 (
     echo ✅ PostgreSQL      → running
 ) else (

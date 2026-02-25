@@ -4,7 +4,7 @@ set -e
 echo "⏳ Waiting for PostgreSQL..."
 until node -e "
 const { Pool } = require('pg');
-const p = new Pool({ host: process.env.PG_HOST || 'postgres', port: parseInt(process.env.PG_PORT || '5432'), user: process.env.PG_USER || 'openclaw', password: process.env.PG_PASSWORD || 'openclaw_secret', database: process.env.PG_DATABASE || 'openclaw_memory' });
+const p = new Pool({ host: process.env.PG_HOST || 'postgres', port: parseInt(process.env.PG_PORT || '5432'), user: process.env.PG_USER || 'memolo', password: process.env.PG_PASSWORD || 'memolo_secret', database: process.env.PG_DATABASE || 'memolo' });
 p.query('SELECT 1').then(() => { p.end(); process.exit(0); }).catch(() => { p.end(); process.exit(1); });
 " 2>/dev/null; do
     echo "  PostgreSQL not ready, retrying in 2s..."

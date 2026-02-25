@@ -1,5 +1,5 @@
--- OpenClaw Memory System — Initial Schema
--- Run: psql -U openclaw -d openclaw_memory -f migrations/001_initial.sql
+-- Memolo Memory System — Initial Schema
+-- Run: psql -U memolo -d memolo -f migrations/001_initial.sql
 
 -- Enable extensions
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

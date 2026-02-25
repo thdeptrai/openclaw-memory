@@ -1,11 +1,11 @@
-# openclaw-memory SDK
+# Memolo SDK
 
 Lightweight client SDK for integrating any AI agent with the Memolo Memory System.
 
 ## Quick Start
 
 ```javascript
-const { MemoryClient } = require('openclaw-memory');
+const { MemoryClient } = require('memolo');
 
 const memory = new MemoryClient({
   agentId: 'my-agent-01',
@@ -34,7 +34,7 @@ await memory.store({
 ## Express Middleware (Auto Mode)
 
 ```javascript
-const { createMemoryMiddleware } = require('openclaw-memory');
+const { createMemoryMiddleware } = require('memolo');
 
 app.use('/chat', createMemoryMiddleware({
   agentId: 'my-agent',

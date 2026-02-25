@@ -5,14 +5,14 @@ services:
     image: postgres:16-alpine
     container_name: memolo-postgres
     environment:
-      POSTGRES_USER: ${PG_USER:-openclaw}
-      POSTGRES_PASSWORD: ${PG_PASSWORD:-openclaw_secret}
-      POSTGRES_DB: ${PG_DATABASE:-openclaw_memory}
+      POSTGRES_USER: ${PG_USER:-memolo}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-memolo_secret}
+      POSTGRES_DB: ${PG_DATABASE:-memolo}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${PG_USER:-openclaw} -d ${PG_DATABASE:-openclaw_memory}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${PG_USER:-memolo} -d ${PG_DATABASE:-memolo}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -38,9 +38,9 @@ services:
       DASHBOARD_PORT: ${DASHBOARD_PORT:-3001}
       PG_HOST: postgres
       PG_PORT: 5432
-      PG_USER: ${PG_USER:-openclaw}
-      PG_PASSWORD: ${PG_PASSWORD:-openclaw_secret}
-      PG_DATABASE: ${PG_DATABASE:-openclaw_memory}
+      PG_USER: ${PG_USER:-memolo}
+      PG_PASSWORD: ${PG_PASSWORD:-memolo_secret}
+      PG_DATABASE: ${PG_DATABASE:-memolo}
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}

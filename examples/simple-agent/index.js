@@ -1,5 +1,5 @@
 /**
- * Simple Agent Example — Demonstrates OpenClaw Memory SDK integration
+ * Simple Agent Example — Demonstrates Memolo SDK integration
  *
  * This agent:
  * 1. Recalls relevant memories BEFORE processing each message
@@ -10,7 +10,7 @@
  * Then run this: npm start
  */
 const express = require('express');
-const { MemoryClient, createMemoryMiddleware } = require('openclaw-memory');
+const { MemoryClient, createMemoryMiddleware } = require('memolo');
 
 const app = express();
 app.use(express.json());

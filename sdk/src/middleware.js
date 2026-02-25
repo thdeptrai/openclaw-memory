@@ -4,7 +4,7 @@ const MemoryClient = require('./client');
  * Express Middleware for automatic memory recall + store
  *
  * Usage:
- *   const { createMemoryMiddleware } = require('openclaw-memory');
+ *   const { createMemoryMiddleware } = require('memolo');
  *
  *   app.use('/chat', createMemoryMiddleware({
  *     agentId: 'my-agent',
@@ -64,7 +64,7 @@ function createMemoryMiddleware(options = {}) {
 
             next();
         } catch (error) {
-            console.error('[openclaw-memory] Middleware error:', error.message);
+            console.error('[memolo] Middleware error:', error.message);
             // Don't block the request if memory system fails
             req.memories = null;
             req.memoryContext = '';

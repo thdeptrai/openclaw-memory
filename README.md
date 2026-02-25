@@ -6,7 +6,7 @@
 
 ```bash
 # 1. Clone & configure
-cd openclaw-memory
+cd memolo
 cp .env.example .env
 # Edit .env → set MEMOLO_MASTER_KEY to a random string
 #           → set MINIMAX_API_KEY to your MiniMax API key
@@ -232,7 +232,7 @@ Every ADD, UPDATE, and DELETE operation is logged with:
 
 ### SDK (Node.js)
 ```javascript
-const { MemoryClient } = require('openclaw-memory');
+const { MemoryClient } = require('memolo');
 const memory = new MemoryClient({
   agentId: 'my-agent',
   apiKey: 'agent-api-key-from-register',
@@ -243,7 +243,7 @@ const ctx = await memory.recall('user question', { format: 'context' });
 const result = await memory.store({ userMessage: '...', agentResponse: '...' });
 ```
 
-### OpenClaw Plugin
+### OpenClaw Plugin (Example Integration)
 ```json
 {
   "memolo": {
@@ -350,9 +350,9 @@ RERANK_TIMEOUT=30000                         # Reranking timeout (ms)
 # Database (no need to change for Docker)
 PG_HOST=postgres
 PG_PORT=5432
-PG_USER=openclaw
-PG_PASSWORD=openclaw_secret
-PG_DATABASE=openclaw_memory
+PG_USER=memolo
+PG_PASSWORD=memolo_secret
+PG_DATABASE=memolo
 QDRANT_HOST=qdrant
 QDRANT_PORT=6333
 ```
@@ -363,4 +363,4 @@ QDRANT_PORT=6333
 
 - 📋 [SETUP.md](SETUP.md) — Detailed setup & troubleshooting
 - 📦 [SDK README](sdk/README.md) — Node.js client SDK
-- 🔌 [Plugin README](plugin/README.md) — OpenClaw plugin docs
+- 🔌 [Plugin README](plugin/README.md) — OpenClaw plugin integration docs

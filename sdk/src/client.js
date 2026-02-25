@@ -1,8 +1,8 @@
 /**
- * MemoryClient — Lightweight client for OpenClaw Memory Server
+ * MemoryClient — Lightweight client for Memolo Memory Server
  *
  * Usage:
- *   const { MemoryClient } = require('openclaw-memory');
+ *   const { MemoryClient } = require('memolo');
  *   const memory = new MemoryClient({ agentId: 'my-agent', apiKey: 'your-api-key', serverUrl: 'http://192.168.1.100:7437' });
  *   const memories = await memory.recall('what did we discuss about auth?');
  *   await memory.store({ conversationId, userMessage, agentResponse });
@@ -29,7 +29,7 @@ class MemoryClient {
             });
             this._registered = true;
         } catch (err) {
-            console.warn(`[openclaw-memory] Agent registration warning: ${err.message}`);
+            console.warn(`[memolo] Agent registration warning: ${err.message}`);
         }
     }
 

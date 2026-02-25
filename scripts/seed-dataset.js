@@ -27,7 +27,7 @@ async function clearAll() {
     console.log('=== STEP 1: Clear PostgreSQL (via docker exec) ===');
     try {
         const sql = "TRUNCATE exchanges, memories, summaries, conversations, agents, knowledge_base, memory_history, entities, relationships, memory_conversations CASCADE;";
-        const cmd = `docker exec memolo-postgres psql -U openclaw -d openclaw_memory -c "${sql}"`;
+        const cmd = `docker exec memolo-postgres psql -U memolo -d memolo -c "${sql}"`;
         const out = execSync(cmd, { encoding: 'utf8', timeout: 15000 });
         console.log('  ' + out.trim());
     } catch (e) {

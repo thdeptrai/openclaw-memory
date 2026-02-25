@@ -238,9 +238,9 @@ MEMOLO_MASTER_KEY=${MASTER_KEY}
 PORT=7437
 
 # === Database (auto-managed by Docker) ===
-PG_USER=openclaw
-PG_PASSWORD=$(openssl rand -hex 16 2>/dev/null || echo "openclaw_secret")
-PG_DATABASE=openclaw_memory
+PG_USER=memolo
+PG_PASSWORD=$(openssl rand -hex 16 2>/dev/null || echo "memolo_secret")
+PG_DATABASE=memolo
 
 # === Memory Settings ===
 SUMMARIZE_AFTER_EXCHANGES=5
@@ -288,7 +288,7 @@ else
     warn "Memolo API      → not responding yet (may still be starting)"
 fi
 
-if docker exec memolo-postgres pg_isready -U openclaw &>/dev/null; then
+if docker exec memolo-postgres pg_isready -U memolo &>/dev/null; then
     log "PostgreSQL      → running ✓"
 else
     warn "PostgreSQL      → checking..."

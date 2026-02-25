@@ -1,7 +1,7 @@
 {
-  "name": "openclaw-memory-server",
+  "name": "memolo-server",
   "version": "1.0.0",
-  "description": "OpenClaw Shared Memory Server for Multi-Agent AI",
+  "description": "Memolo — Shared Memory Server for Multi-Agent AI",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

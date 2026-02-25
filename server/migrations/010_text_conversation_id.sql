@@ -1,5 +1,5 @@
 -- Migration 010: Change conversations.id from UUID to TEXT
--- OpenClaw sends string IDs like "agent:main:main" which are not valid UUIDs
+-- Some agents (e.g. OpenClaw) send string IDs like "agent:main:main" which are not valid UUIDs
 
 -- Drop foreign key constraints first
 ALTER TABLE exchanges DROP CONSTRAINT IF EXISTS exchanges_conversation_id_fkey;

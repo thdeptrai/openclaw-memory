@@ -1,4 +1,4 @@
--- OpenClaw Memory System — Phase 4: Intelligence Layer
+-- Memolo Memory System — Phase 4: Intelligence Layer
 
 -- Add visibility/permission to memories
 ALTER TABLE memories ADD COLUMN IF NOT EXISTS visibility VARCHAR(30) DEFAULT 'shared';

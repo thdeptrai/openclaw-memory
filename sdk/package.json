@@ -1,7 +1,7 @@
 {
-    "name": "openclaw-memory",
+    "name": "memolo",
     "version": "1.0.0",
-    "description": "Client SDK for OpenClaw Shared Memory System",
+    "description": "Client SDK for Memolo Memory System",
     "main": "src/index.js",
     "scripts": {
         "test": "jest"

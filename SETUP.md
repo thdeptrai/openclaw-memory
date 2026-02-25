@@ -26,7 +26,7 @@
 ollama pull qwen3-embedding:8b
 
 # 2. Configure
-cd openclaw-memory
+cd memolo
 cp .env.example .env
 # Edit .env:
 #   → MEMOLO_MASTER_KEY: đổi thành chuỗi random
@@ -98,9 +98,9 @@ RERANK_TIMEOUT=30000                         # Reranking (ms)
 # === DATABASE (không cần đổi nếu dùng Docker) ===
 PG_HOST=postgres        # Docker service name
 PG_PORT=5432
-PG_USER=openclaw
-PG_PASSWORD=openclaw_secret
-PG_DATABASE=openclaw_memory
+PG_USER=memolo
+PG_PASSWORD=memolo_secret
+PG_DATABASE=memolo
 QDRANT_HOST=qdrant      # Docker service name
 QDRANT_PORT=6333
 ```
@@ -214,7 +214,7 @@ New-NetFirewallRule -DisplayName "Memolo" -Direction Inbound -Port 7437 -Protoco
 ### SDK (Node.js)
 
 ```javascript
-const { MemoryClient } = require('openclaw-memory');
+const { MemoryClient } = require('memolo');
 
 const memory = new MemoryClient({
   agentId: 'my-agent',
@@ -233,7 +233,7 @@ const result = await memory.store({
 // result.conversationId ← reuse cho exchanges tiếp
 ```
 
-### OpenClaw Plugin
+### OpenClaw Plugin (Example Integration)
 
 ```json
 {
@@ -337,7 +337,7 @@ curl -X POST http://localhost:7437/api/config/reset \
 ### Update version
 
 ```bash
-cd openclaw-memory
+cd memolo
 git pull                    # Hoặc copy files mới
 docker compose build        # Rebuild server image
 docker compose up -d        # Restart (data giữ nguyên)
@@ -347,10 +347,10 @@ docker compose up -d        # Restart (data giữ nguyên)
 
 ```bash
 # Backup
-docker exec memolo-postgres pg_dump -U openclaw openclaw_memory > backup.sql
+docker exec memolo-postgres pg_dump -U memolo memolo > backup.sql
 
 # Restore
-docker exec -i memolo-postgres psql -U openclaw openclaw_memory < backup.sql
+docker exec -i memolo-postgres psql -U memolo memolo < backup.sql
 ```
 
 ### Dừng / Khởi động lại
