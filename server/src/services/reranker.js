@@ -47,13 +47,6 @@ async function rerank(query, memories, { limit = 10, minScore = 0.2 } = {}) {
         return memories;
     }
 
-    // Skip LLM reranking for cloud providers (per-request billing — save API calls)
-    const provider = runtimeConfig.get('llm.provider') || 'minimax';
-    if (provider !== 'ollama') {
-        console.log(`  ⏭️ Skipping LLM reranking (provider: ${provider}, using vector scores)`);
-        return memories.slice(0, limit);
-    }
-
     // Don't bother reranking very small result sets
     if (memories.length <= 2) {
         return memories;
@@ -63,7 +56,7 @@ async function rerank(query, memories, { limit = 10, minScore = 0.2 } = {}) {
     const candidates = memories.slice(0, 20);
 
     try {
-        const scores = await callOllamaForRerank(query, candidates);
+        const scores = await callLLMForRerank(query, candidates);
 
         // Apply scores and sort
         const scored = candidates.map((mem, idx) => {
@@ -88,9 +81,9 @@ async function rerank(query, memories, { limit = 10, minScore = 0.2 } = {}) {
     }
 }
 
-// ============ OLLAMA RERANK CALL ============
+// ============ LLM RERANK CALL ============
 
-async function callOllamaForRerank(query, memories) {
+async function callLLMForRerank(query, memories) {
     const memoriesForPrompt = memories
         .map((m, idx) => `[${idx}] ${(m.content || m.payload?.content || '').substring(0, 200)}`)
         .join('\n');
