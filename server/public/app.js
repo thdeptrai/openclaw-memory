@@ -1,5 +1,5 @@
-/* ============================================================
-   Memolo Memory Dashboard v2.0 — Application Logic
+﻿/* ============================================================
+   Memolo Memory Dashboard v2.0 â€” Application Logic
    Real-time SSE updates, Conversations, Activity Feed, Toasts
    ============================================================ */
 
@@ -29,7 +29,7 @@ function updateThemeUI(theme) {
     const icon = document.getElementById('theme-icon');
     const label = document.getElementById('theme-label');
     const isDark = ['night', 'dark', 'dracula', 'business'].includes(theme);
-    if (icon) icon.textContent = isDark ? '🌙' : '☀️';
+    if (icon) icon.textContent = isDark ? 'ðŸŒ™' : 'â˜€ï¸';
     if (label) label.textContent = isDark ? 'Dark mode' : 'Light mode';
 }
 
@@ -148,24 +148,24 @@ function handleSSEEvent(msg) {
             addLogEntry(msg.data);
             break;
         case 'exchange:new':
-            addActivityItem('💾', 'Exchange Stored', `${msg.data.agentId} — "${truncate(msg.data.userMessage, 60)}"`, 'memory', msg.data.timestamp);
-            if (sseReady) showToast('💾', 'New Exchange', `${msg.data.agentId}: ${truncate(msg.data.userMessage, 80)}`);
+            addActivityItem('ðŸ’¾', 'Exchange Stored', `${msg.data.agentId} â€” "${truncate(msg.data.userMessage, 60)}"`, 'memory', msg.data.timestamp);
+            if (sseReady) showToast('ðŸ’¾', 'New Exchange', `${msg.data.agentId}: ${truncate(msg.data.userMessage, 80)}`);
             loadDashMemories(); // refresh
             break;
         case 'memory:new': {
-            const actorIcon = msg.data.actorId === 'assistant' ? '🤖' : '👤';
+            const actorIcon = msg.data.actorId === 'assistant' ? 'ðŸ¤–' : 'ðŸ‘¤';
             const actorLabel = msg.data.actorId === 'assistant' ? 'Agent' : 'User';
-            const typeIcon = msg.data.type === 'fact' ? '✅' : '🔮';
+            const typeIcon = msg.data.type === 'fact' ? 'âœ…' : 'ðŸ”®';
             addActivityItem(typeIcon, `${actorLabel} ${capitalize(msg.data.type)} Extracted`, truncate(msg.data.content, 80), 'summarizer', msg.data.timestamp);
             break;
         }
         case 'summarize:done':
-            addActivityItem('🧠', 'Summarization Complete', `${msg.data.factsCount} facts, ${msg.data.decisionsCount} decisions`, 'summarizer', msg.data.timestamp);
-            if (sseReady) showToast('🧠', 'Summarization Done', `${msg.data.factsCount} facts extracted`);
+            addActivityItem('ðŸ§ ', 'Summarization Complete', `${msg.data.factsCount} facts, ${msg.data.decisionsCount} decisions`, 'summarizer', msg.data.timestamp);
+            if (sseReady) showToast('ðŸ§ ', 'Summarization Done', `${msg.data.factsCount} facts extracted`);
             break;
         case 'agent:new':
-            addActivityItem('🤖', 'New Agent', `${msg.data.name} (${msg.data.agentId})`, 'memory', msg.data.timestamp);
-            if (sseReady) showToast('🤖', 'Agent Registered', msg.data.name);
+            addActivityItem('ðŸ¤–', 'New Agent', `${msg.data.name} (${msg.data.agentId})`, 'memory', msg.data.timestamp);
+            if (sseReady) showToast('ðŸ¤–', 'Agent Registered', msg.data.name);
             loadStats(); // refresh
             break;
         case 'stats:update':
@@ -185,9 +185,9 @@ async function loadStats() {
 
         // Health
         const isHealthy = health.status === 'healthy';
-        document.getElementById('stat-health').textContent = isHealthy ? '✓' : '✗';
+        document.getElementById('stat-health').textContent = isHealthy ? 'âœ“' : 'âœ—';
         document.getElementById('stat-health-detail').textContent =
-            Object.entries(health.checks).map(([k, v]) => `${k}: ${v}`).join(' · ');
+            Object.entries(health.checks).map(([k, v]) => `${k}: ${v}`).join(' Â· ');
         document.getElementById('health-dot').className = `health-dot ${isHealthy ? '' : 'unhealthy'}`;
         document.getElementById('health-text').textContent = isHealthy ? 'All systems healthy' : 'Issues detected';
 
@@ -226,7 +226,7 @@ function updateStatsFromSSE(data) {
     setWithFlash('stat-memories', data.activeMemories);
     const superseded = data.supersededMemories || 0;
     document.getElementById('stat-memories-detail').textContent =
-        `${data.activeMemories} active · ${superseded} superseded`;
+        `${data.activeMemories} active Â· ${superseded} superseded`;
 
     setWithFlash('stat-agents', data.registeredAgents);
     document.getElementById('stat-agents-detail').textContent =
@@ -243,29 +243,26 @@ function addActivityItem(icon, title, desc, source = '', eventTime = null) {
     const feed = document.getElementById('activity-feed');
     if (!feed) return;
 
-    // Remove empty state
-    const empty = feed.querySelector('.empty-state');
+    const empty = feed.querySelector('.text-center');
     if (empty) empty.remove();
 
-    // Use event's original timestamp if available, otherwise current time
     const ts = eventTime ? new Date(eventTime) : new Date();
     const timeStr = ts.toLocaleTimeString('en-GB', { hour12: false });
 
     const div = document.createElement('div');
-    div.className = 'activity-item';
+    div.className = 'flex items-start gap-3 py-2 border-b border-base-300/50 text-sm animate-[fadeSlideIn_0.3s_ease-out]';
     div.innerHTML = `
-    <span class="activity-icon">${icon}</span>
-    <div class="activity-body">
-      <div class="activity-title">${escHtml(title)}</div>
-      <div class="activity-desc">${escHtml(desc)}</div>
+    <span class="text-lg flex-shrink-0">${icon}</span>
+    <div class="flex-1 min-w-0">
+      <div class="font-semibold">${escHtml(title)}</div>
+      <div class="text-xs text-base-content/60">${escHtml(desc)}</div>
     </div>
-    ${source ? `<span class="activity-source ${source}">${source}</span>` : ''}
-    <span class="activity-time">${timeStr}</span>
+    ${source ? `<span class="badge badge-ghost badge-xs">${source}</span>` : ''}
+    <span class="text-xs text-base-content/40 whitespace-nowrap">${timeStr}</span>
   `;
 
     feed.insertBefore(div, feed.firstChild);
 
-    // Limit entries
     while (feed.children.length > 100) {
         feed.removeChild(feed.lastChild);
     }
@@ -273,7 +270,7 @@ function addActivityItem(icon, title, desc, source = '', eventTime = null) {
 
 function clearActivityFeed() {
     document.getElementById('activity-feed').innerHTML =
-        '<div class="empty-state"><span class="icon">⚡</span> Feed cleared</div>';
+        '<div class="text-center text-base-content/40 py-8">âš¡</span> Feed cleared</div>';
 }
 
 // ============ TOAST NOTIFICATIONS ============
@@ -329,7 +326,7 @@ let agentKeyVisibility = {};
 function renderAgentsList(agents, containerId) {
     const container = document.getElementById(containerId);
     if (!agents.length) {
-        container.innerHTML = '<div class="empty-state"><span class="icon">🤖</span> No agents registered yet. Connect an agent via the SDK to get started.</div>';
+        container.innerHTML = '<div class="text-center text-base-content/40 py-8">ðŸ¤– No agents registered yet.</div>';
         return;
     }
 
@@ -340,26 +337,25 @@ function renderAgentsList(agents, containerId) {
         const apiKey = a.api_key || '';
         const isVisible = agentKeyVisibility[a.id] || false;
 
-        // Mask key: show first 8 + last 4 chars
         const maskedKey = apiKey.length > 12
-            ? apiKey.slice(0, 8) + '••••••••' + apiKey.slice(-4)
-            : '••••••••••••';
+            ? apiKey.slice(0, 8) + 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' + apiKey.slice(-4)
+            : 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢';
 
         const showFull = containerId === 'agents-full-list';
         const keySection = showFull ? `
-      <div class="agent-key-section">
-        <div class="agent-key-row">
-          <span class="agent-key-label">🔑 API Key</span>
-          <code class="agent-key-value" id="agent-key-${a.id}">${isVisible ? escHtml(apiKey) : maskedKey}</code>
-          <div class="agent-key-actions">
-            <button class="btn-icon" onclick="toggleAgentKeyVisibility('${a.id}')" title="${isVisible ? 'Hide' : 'Show'}">
-              ${isVisible ? '🙈' : '👁️'}
+      <div class="mt-2">
+        <div class="flex items-center gap-2 flex-wrap p-2 bg-base-300/50 rounded-lg">
+          <span class="text-xs font-semibold text-base-content/60">ðŸ”‘ API Key</span>
+          <code class="text-xs font-mono text-primary flex-1 min-w-0 truncate" id="agent-key-${a.id}">${isVisible ? escHtml(apiKey) : maskedKey}</code>
+          <div class="flex gap-1">
+            <button class="btn btn-ghost btn-xs btn-circle" onclick="toggleAgentKeyVisibility('${a.id}')" title="${isVisible ? 'Hide' : 'Show'}">
+              ${isVisible ? 'ðŸ™ˆ' : 'ðŸ‘ï¸'}
             </button>
-            <button class="btn-icon" onclick="copyAgentKey('${a.id}', '${escHtml(apiKey)}')" title="Copy to clipboard">
-              📋
+            <button class="btn btn-ghost btn-xs btn-circle" onclick="copyAgentKey('${a.id}', '${escHtml(apiKey)}')" title="Copy to clipboard">
+              ðŸ“‹
             </button>
-            <button class="btn-icon btn-icon-danger" onclick="regenerateAgentKey('${a.id}', '${escHtml(a.name || a.id)}')" title="Regenerate key (invalidates old key)">
-              🔄
+            <button class="btn btn-ghost btn-xs btn-circle text-error" onclick="regenerateAgentKey('${a.id}', '${escHtml(a.name || a.id)}')" title="Regenerate key">
+              ðŸ”„
             </button>
           </div>
         </div>
@@ -367,15 +363,19 @@ function renderAgentsList(agents, containerId) {
     ` : '';
 
         return `
-    <div class="agent-item">
-      <div class="agent-avatar" style="background: ${getAgentColor(a.id)}">${getInitials(a.name || a.id)}</div>
-      <div class="agent-info">
-        <div class="agent-name">${escHtml(a.name || a.id)}</div>
-        <div class="agent-meta">ID: ${escHtml(a.id)}</div>
-        <div class="agent-stats">
-          <span title="Conversations">💬 ${convCount} conversations</span>
-          <span title="Exchanges">📝 ${exCount} exchanges</span>
-          <span title="Last active">🕐 ${timeAgo(lastActive)}</span>
+    <div class="flex gap-3 py-3 border-b border-base-300/30 last:border-b-0 items-start">
+      <div class="avatar placeholder">
+        <div class="w-10 rounded-xl text-white" style="background: ${getAgentColor(a.id)}">
+          <span class="text-sm font-bold">${getInitials(a.name || a.id)}</span>
+        </div>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="font-bold text-sm">${escHtml(a.name || a.id)}</div>
+        <div class="text-xs text-base-content/50">ID: ${escHtml(a.id)}</div>
+        <div class="flex gap-3 flex-wrap text-xs text-base-content/60 mt-1">
+          <span>ðŸ’¬ ${convCount} conversations</span>
+          <span>ðŸ“ ${exCount} exchanges</span>
+          <span>ðŸ• ${timeAgo(lastActive)}</span>
         </div>
         ${keySection}
       </div>
@@ -391,14 +391,14 @@ function toggleAgentKeyVisibility(agentId) {
 
 function copyAgentKey(agentId, key) {
     navigator.clipboard.writeText(key).then(() => {
-        showToast(`📋 API key for ${agentId} copied`, 'success');
+        showToast(`ðŸ“‹ API key for ${agentId} copied`, 'success');
     }).catch(() => {
-        showToast('❌ Failed to copy', 'error');
+        showToast('âŒ Failed to copy', 'error');
     });
 }
 
 async function regenerateAgentKey(agentId, agentName) {
-    if (!confirm(`⚠️ Regenerate API key for "${agentName}"?\n\nThe old key will be invalidated immediately. Any agent using the old key will lose access.`)) return;
+    if (!confirm(`âš ï¸ Regenerate API key for "${agentName}"?\n\nThe old key will be invalidated immediately. Any agent using the old key will lose access.`)) return;
 
     try {
         const res = await fetch(`/api/memory/agents/${agentId}/regenerate-key`, {
@@ -408,14 +408,14 @@ async function regenerateAgentKey(agentId, agentName) {
         const json = await res.json();
 
         if (json.success) {
-            showToast(`🔑 New key generated for ${agentName}`, 'success');
+            showToast(`ðŸ”‘ New key generated for ${agentName}`, 'success');
             agentKeyVisibility[agentId] = true; // Show the new key
             await loadAgentsFull();
         } else {
-            showToast(`❌ Failed: ${json.error}`, 'error');
+            showToast(`âŒ Failed: ${json.error}`, 'error');
         }
     } catch (err) {
-        showToast(`❌ Error: ${err.message}`, 'error');
+        showToast(`âŒ Error: ${err.message}`, 'error');
     }
 }
 
@@ -437,14 +437,14 @@ async function loadConversations() {
         }
     } catch {
         document.getElementById('conv-list').innerHTML =
-            '<div class="empty-state"><span class="icon">💬</span> Failed to load</div>';
+            '<div class="text-center text-base-content/40 py-8">ðŸ’¬</span> Failed to load</div>';
     }
 }
 
 function renderConversationList(conversations) {
     const container = document.getElementById('conv-list');
     if (!conversations.length) {
-        container.innerHTML = '<div class="empty-state"><span class="icon">💬</span> No conversations yet. Start chatting with an agent to see conversations here.</div>';
+        container.innerHTML = '<div class="text-center text-base-content/40 py-8">ðŸ’¬ No conversations yet.</div>';
         return;
     }
 
@@ -452,22 +452,24 @@ function renderConversationList(conversations) {
         const agentName = c.agent_name || c.agent_id || 'unknown';
         const isActive = c.status === 'active';
         const isSelected = c.id === selectedConvId;
-        // Use topic as title, fallback to first message snippet, then Conv ID
         const title = c.topic || c.title || `Conv ${c.id.slice(0, 8)}`;
-        const statusText = isActive ? 'Active' : 'Ended';
         return `
-      <div class="conv-item ${isSelected ? 'active' : ''}" onclick="loadConversationThread('${c.id}', '${escAttr(agentName)}')">
-        <div class="conv-avatar" style="background: ${getAgentColor(c.agent_id || 'x')}">${getInitials(agentName)}</div>
-        <div class="conv-info">
-          <div class="conv-title">${escHtml(title)}</div>
-          <div class="conv-subtitle">
-            <span class="conv-status ${isActive ? 'active' : 'ended'}" title="${statusText}"></span>
-            ${escHtml(agentName)}
-            ${c.exchange_count ? `<span class="conv-badge" title="Number of exchanges in this conversation">${c.exchange_count} exchanges</span>` : ''}
-            ${c.topic ? `<span class="conv-topic-badge" title="Topic: ${escAttr(c.topic)}">${escHtml(c.topic)}</span>` : ''}
+      <div class="flex items-center gap-3 px-3 py-2.5 cursor-pointer border-b border-base-300/30 border-l-3 transition-colors hover:bg-base-300/30 ${isSelected ? 'bg-primary/8 border-l-primary' : 'border-l-transparent'}" onclick="loadConversationThread('${c.id}', '${escAttr(agentName)}')">
+        <div class="avatar placeholder">
+          <div class="w-9 rounded-lg text-white text-xs" style="background: ${getAgentColor(c.agent_id || 'x')}">
+            <span class="font-bold">${getInitials(agentName)}</span>
           </div>
         </div>
-        <span class="conv-time">${timeAgo(c.updated_at || c.created_at)}</span>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-sm truncate">${escHtml(title)}</div>
+          <div class="flex items-center gap-1.5 text-xs text-base-content/50 flex-wrap">
+            <span class="inline-block w-1.5 h-1.5 rounded-full ${isActive ? 'bg-success' : 'bg-base-content/30'}"></span>
+            ${escHtml(agentName)}
+            ${c.exchange_count ? `<span class="badge badge-info badge-xs">${c.exchange_count} exchanges</span>` : ''}
+            ${c.topic ? `<span class="badge badge-ghost badge-xs">${escHtml(c.topic)}</span>` : ''}
+          </div>
+        </div>
+        <span class="text-xs text-base-content/40 whitespace-nowrap">${timeAgo(c.updated_at || c.created_at)}</span>
       </div>
     `;
     }).join('');
@@ -490,23 +492,20 @@ function filterConversations(query) {
 async function loadConversationThread(convId, agentName) {
     selectedConvId = convId;
 
-    // Highlight selected in list
-    document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
-    event.currentTarget?.classList?.add('active');
+    // Re-render conversation list to update selection
+    renderConversationList(allConversations);
 
-    // Update header
-    document.getElementById('conv-thread-title').textContent = `💬 ${agentName || 'Conversation'}`;
+    document.getElementById('conv-thread-title').textContent = `ðŸ’¬ ${agentName || 'Conversation'}`;
     document.getElementById('conv-thread-actions').style.display = 'flex';
     document.getElementById('conv-thread-meta').textContent = `ID: ${convId.slice(0, 12)}...`;
 
-    // Load exchanges
     const threadEl = document.getElementById('conv-thread');
-    threadEl.innerHTML = '<div class="empty-state"><span class="icon">⏳</span> Loading...</div>';
+    threadEl.innerHTML = '<div class="text-center text-base-content/40 py-8"><span class="loading loading-spinner loading-md"></span><p class="mt-2">Loading...</p></div>';
 
     try {
         const res = await api('GET', `/api/memory/conversations/${convId}`);
         if (!res.success) {
-            threadEl.innerHTML = '<div class="empty-state"><span class="icon">❌</span> Failed to load</div>';
+            threadEl.innerHTML = '<div class="text-center text-error py-8">âŒ Failed to load</div>';
             return;
         }
 
@@ -514,36 +513,33 @@ async function loadConversationThread(convId, agentName) {
         const exchanges = conv.exchanges || [];
 
         if (!exchanges.length) {
-            threadEl.innerHTML = '<div class="empty-state"><span class="icon">💬</span> No exchanges yet</div>';
+            threadEl.innerHTML = '<div class="text-center text-base-content/40 py-8">ðŸ’¬ No exchanges yet</div>';
             return;
         }
 
         threadEl.innerHTML = exchanges.map((ex, i) => `
-        <div class="thread-message">
-          <div class="thread-message-user">
-            <div class="thread-msg-avatar user">👤</div>
-            <div class="thread-msg-body">
-              <div class="thread-msg-header">
-                <span class="thread-msg-name user">User</span>
-                <span class="thread-msg-time">#${ex.sequence_num || i + 1} · ${timeAgo(ex.created_at)}</span>
-              </div>
-              <div class="thread-msg-content">${escHtml(ex.user_message)}</div>
+        <div class="chat chat-start mb-1">
+          <div class="chat-image avatar placeholder">
+            <div class="w-8 rounded-full bg-info/20 text-info">
+              <span>ðŸ‘¤</span>
             </div>
           </div>
-          <div class="thread-message-agent" style="margin-top: 10px">
-            <div class="thread-msg-avatar agent">🤖</div>
-            <div class="thread-msg-body">
-              <div class="thread-msg-header">
-                <span class="thread-msg-name agent">${escHtml(agentName)}</span>
-              </div>
-              <div class="thread-msg-content">${escHtml(ex.agent_response)}</div>
-            </div>
+          <div class="chat-header text-xs opacity-60">
+            User <time class="text-xs opacity-40">#${ex.sequence_num || i + 1} Â· ${timeAgo(ex.created_at)}</time>
           </div>
+          <div class="chat-bubble chat-bubble-info text-sm whitespace-pre-wrap">${escHtml(ex.user_message)}</div>
         </div>
-        ${i < exchanges.length - 1 ? '<div class="thread-divider">•</div>' : ''}
+        <div class="chat chat-end mb-3">
+          <div class="chat-image avatar placeholder">
+            <div class="w-8 rounded-full bg-success/20 text-success">
+              <span>ðŸ¤–</span>
+            </div>
+          </div>
+          <div class="chat-header text-xs opacity-60">${escHtml(agentName)}</div>
+          <div class="chat-bubble chat-bubble-success text-sm whitespace-pre-wrap">${escHtml(ex.agent_response)}</div>
+        </div>
       `).join('');
 
-        // Scroll to bottom
         threadEl.scrollTop = threadEl.scrollHeight;
 
         // Render summaries
@@ -556,21 +552,21 @@ async function loadConversationThread(convId, agentName) {
                 const facts = s.facts_extracted || [];
                 const decisions = s.decisions_made || [];
                 return `
-                    <div class="conv-summary-card">
-                        <div class="conv-summary-text">${escHtml(s.summary_text || 'No summary text')}</div>
+                    <div class="bg-base-300/40 rounded-lg p-4 mb-2 border-l-3 border-primary">
+                        <p class="text-sm leading-relaxed mb-2">${escHtml(s.summary_text || 'No summary text')}</p>
                         ${facts.length ? `
-                            <div class="conv-summary-facts">
-                                <div class="conv-summary-label">📌 Key Facts</div>
-                                <ul>${facts.map(f => `<li>${escHtml(f)}</li>`).join('')}</ul>
+                            <div class="mt-2">
+                                <div class="text-xs font-semibold text-base-content/60 mb-1">ðŸ“Œ Key Facts</div>
+                                <ul class="list-disc pl-5 text-sm space-y-0.5">${facts.map(f => `<li>${escHtml(f)}</li>`).join('')}</ul>
                             </div>
                         ` : ''}
                         ${decisions.length ? `
-                            <div class="conv-summary-decisions">
-                                <div class="conv-summary-label">🔮 Decisions</div>
-                                <ul>${decisions.map(d => `<li>${escHtml(d)}</li>`).join('')}</ul>
+                            <div class="mt-2">
+                                <div class="text-xs font-semibold text-base-content/60 mb-1">ðŸ”® Decisions</div>
+                                <ul class="list-disc pl-5 text-sm space-y-0.5">${decisions.map(d => `<li>${escHtml(d)}</li>`).join('')}</ul>
                             </div>
                         ` : ''}
-                        <div class="conv-summary-meta">Exchanges #${s.from_sequence}–#${s.to_sequence} · ${timeAgo(s.created_at)}</div>
+                        <div class="text-xs text-base-content/40 mt-2">Exchanges #${s.from_sequence}â€“#${s.to_sequence} Â· ${timeAgo(s.created_at)}</div>
                     </div>
                 `;
             }).join('');
@@ -578,11 +574,10 @@ async function loadConversationThread(convId, agentName) {
             summarySection.style.display = 'none';
         }
 
-        // Load summaries/knowledge
         loadConversationKnowledge(conv.memories || []);
 
     } catch (err) {
-        threadEl.innerHTML = `<div class="empty-state"><span class="icon">❌</span> Error: ${err.message}</div>`;
+        threadEl.innerHTML = `<div class="text-center text-error py-8">âŒ Error: ${err.message}</div>`;
     }
 }
 
@@ -597,39 +592,41 @@ async function loadConversationKnowledge(memories) {
 
     section.style.display = 'block';
     list.innerHTML = memories.map(m => {
-        const typeIcon = m.type === 'fact' ? '✅' : m.type === 'decision' ? '🔮' : m.type === 'preference' ? '⭐' : '📝';
+        const typeIcon = m.type === 'fact' ? 'âœ…' : m.type === 'decision' ? 'ðŸ”®' : m.type === 'preference' ? 'â­' : 'ðŸ“';
         const typeLabel = m.type || 'memory';
-        const actorIcon = m.actor_id === 'assistant' ? '🤖' : '👤';
-        return `<span class="conv-knowledge-tag" title="${typeLabel} (${actorIcon} ${m.actor_id || 'user'})">${typeIcon} ${escHtml(typeLabel)}: ${escHtml(truncate(m.content, 90))}</span>`;
+        const actorIcon = m.actor_id === 'assistant' ? 'ðŸ¤–' : 'ðŸ‘¤';
+        return `<span class="badge badge-outline badge-sm gap-1 py-3" title="${typeLabel} (${actorIcon} ${m.actor_id || 'user'})">${typeIcon} ${escHtml(typeLabel)}: ${escHtml(truncate(m.content, 90))}</span>`;
     }).join('');
 }
 
 // ============ MEMORIES / EXCHANGES ============
 
 function renderExchange(ex) {
-    const agentId = ex.agent_id || ex.source_agent_id || '—';
+    const agentId = ex.agent_id || ex.source_agent_id || 'â€”';
     const topic = ex.topic || '';
     return `
-    <div class="memory-item" data-type="exchange" onclick="toggleExpand(this)">
-      <div class="memory-header">
-        <span class="memory-type exchange" title="Memory type: exchange">💬 exchange</span>
-        <span class="memory-agent-tag" title="Agent ID">${escHtml(agentId)}</span>
-        ${topic ? `<span class="memory-topic-tag" title="Topic">${escHtml(topic)}</span>` : ''}
-        <span class="memory-time">${timeAgo(ex.created_at)}</span>
-      </div>
-      <div class="memory-content">
-        <div style="margin-bottom:6px"><strong style="color:#58a6ff">👤 User:</strong> ${escHtml(truncate(ex.user_message, 200))}</div>
-        <div><strong style="color:#3fb950">🤖 Agent:</strong> ${escHtml(truncate(ex.agent_response, 200))}</div>
-      </div>
-      <span class="expand-btn">▼ Show full</span>
-      <div class="memory-detail">
-        <div class="memory-detail-content">
-          <div class="detail-row"><span class="detail-label">ID</span><span class="detail-value">${ex.id || '—'}</span></div>
-          <div class="detail-row"><span class="detail-label">Conversation</span><span class="detail-value">${ex.conversation_id || '—'}</span></div>
-          <div class="detail-row"><span class="detail-label">Sequence</span><span class="detail-value">#${ex.sequence_num || '—'}</span></div>
-          ${topic ? `<div class="detail-row"><span class="detail-label">Topic</span><span class="detail-value">${escHtml(topic)}</span></div>` : ''}
-          <div class="detail-row"><span class="detail-label">Created</span><span class="detail-value">${ex.created_at || '—'}</span></div>
-          <div class="full-text"><strong style="color:#58a6ff">👤 User:</strong>\n${escHtml(ex.user_message)}\n\n<strong style="color:#3fb950">🤖 Agent:</strong>\n${escHtml(ex.agent_response)}</div>
+    <div class="card bg-base-200 shadow-sm mb-2 cursor-pointer hover:bg-base-300/50 transition-colors" data-type="exchange" onclick="toggleExpand(this)">
+      <div class="card-body p-3">
+        <div class="flex items-center gap-1.5 flex-wrap mb-1">
+          <span class="badge badge-info badge-sm">ðŸ’¬ exchange</span>
+          <span class="badge badge-ghost badge-xs">${escHtml(agentId)}</span>
+          ${topic ? `<span class="badge badge-ghost badge-xs">${escHtml(topic)}</span>` : ''}
+          <span class="ml-auto text-xs text-base-content/40">${timeAgo(ex.created_at)}</span>
+        </div>
+        <div class="text-sm leading-relaxed">
+          <div class="mb-1"><strong class="text-info">ðŸ‘¤ User:</strong> ${escHtml(truncate(ex.user_message, 200))}</div>
+          <div><strong class="text-success">ðŸ¤– Agent:</strong> ${escHtml(truncate(ex.agent_response, 200))}</div>
+        </div>
+        <div class="text-xs text-primary cursor-pointer mt-1 expand-btn">â–¼ Show full</div>
+        <div class="memory-detail">
+          <div class="bg-base-300/50 rounded-lg p-3 mt-2 space-y-1 text-sm">
+            <div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">ID</span><span class="break-all">${ex.id || 'â€”'}</span></div>
+            <div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Conversation</span><span class="break-all">${ex.conversation_id || 'â€”'}</span></div>
+            <div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Sequence</span><span>#${ex.sequence_num || 'â€”'}</span></div>
+            ${topic ? `<div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Topic</span><span>${escHtml(topic)}</span></div>` : ''}
+            <div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Created</span><span>${ex.created_at || 'â€”'}</span></div>
+            <div class="bg-base-300/40 rounded-lg p-3 mt-2 text-sm whitespace-pre-wrap"><strong class="text-info">ðŸ‘¤ User:</strong>\n${escHtml(ex.user_message)}\n\n<strong class="text-success">ðŸ¤– Agent:</strong>\n${escHtml(ex.agent_response)}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -647,53 +644,57 @@ function renderMemory(m) {
     const contentHash = m.content_hash || m.contentHash || '';
     const isSuperseded = !!(m.superseded_by);
     const status = m.status || (isSuperseded ? 'superseded' : 'active');
-    const typeIcon = type === 'fact' ? '✅' : type === 'decision' ? '🔮' : type === 'preference' ? '⭐' : '📝';
-    const scoreColor = score >= 0.7 ? 'high' : score >= 0.4 ? 'medium' : 'low';
-    const actorIcon = actorId === 'assistant' ? '🤖' : actorId === 'manual' ? '✏️' : '👤';
-    const actorClass = actorId === 'assistant' ? 'actor-assistant' : actorId === 'manual' ? 'actor-manual' : 'actor-user';
+    const typeIcon = type === 'fact' ? 'âœ…' : type === 'decision' ? 'ðŸ”®' : type === 'preference' ? 'â­' : 'ðŸ“';
+    const scorePercent = (score * 100).toFixed(0);
+    const progressClass = score >= 0.7 ? 'progress-success' : score >= 0.4 ? 'progress-warning' : 'progress-error';
+    const scoreTextClass = score >= 0.7 ? 'text-success' : score >= 0.4 ? 'text-warning' : 'text-error';
+    const actorIcon = actorId === 'assistant' ? 'ðŸ¤–' : actorId === 'manual' ? 'âœï¸' : 'ðŸ‘¤';
     const actorLabel = actorId === 'assistant' ? 'Assistant' : actorId === 'manual' ? 'Manual' : 'User';
+    const actorBadgeClass = actorId === 'assistant' ? 'badge-success' : actorId === 'manual' ? 'badge-accent' : 'badge-info';
     const statusBadge = isSuperseded
-        ? '<span class="memory-status-badge superseded" title="This memory has been superseded by a newer version">🔄 superseded</span>'
-        : '<span class="memory-status-badge active" title="This memory is current and active">● active</span>';
-    const itemClass = isSuperseded ? 'memory-item superseded' : 'memory-item';
+        ? '<span class="badge badge-warning badge-xs">ðŸ”„ superseded</span>'
+        : '<span class="badge badge-success badge-xs">â— active</span>';
+    const cardClass = isSuperseded ? 'card bg-base-200 shadow-sm mb-2 opacity-60 cursor-pointer hover:opacity-80 transition-all' : 'card bg-base-200 shadow-sm mb-2 cursor-pointer hover:bg-base-300/50 transition-colors';
     return `
-    <div class="${itemClass}" data-type="${type}" data-actor="${actorId}" data-status="${status}" onclick="toggleExpand(this)">
-      <div class="memory-header">
-        ${statusBadge}
-        <span class="memory-type ${type}" title="Memory type: ${type}">${typeIcon} ${type}</span>
-        <span class="memory-actor-badge ${actorClass}" title="Source: ${actorLabel}">${actorIcon} ${actorLabel}</span>
-        <span class="memory-agent-tag" title="Source agent">${escHtml(m.source_agent_id || m.agentId || '—')}</span>
-        ${topic ? `<span class="memory-topic-tag" title="Topic: ${escAttr(topic)}">${escHtml(topic)}</span>` : ''}
-        <span class="memory-time">${timeAgo(m.created_at || m.createdAt)}</span>
-      </div>
-      <div class="memory-content">${escHtml(truncate(m.content, 300))}</div>
-      <div class="memory-score" title="Importance score — how significant this memory is for future recall">
-        <span class="score-label-prefix">Importance:</span>
-        <div class="score-bar"><div class="score-fill score-${scoreColor}" style="width: ${score * 100}%"></div></div>
-        <span class="score-label score-text-${scoreColor}">${(score * 100).toFixed(0)}%</span>
-      </div>
-      <span class="expand-btn">▼ Show full</span>
-      <div class="memory-detail">
-        <div class="memory-detail-content">
-          <div class="detail-row"><span class="detail-label">ID</span><span class="detail-value">${m.id || '—'}</span></div>
-          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">${statusBadge}</span></div>
-          <div class="detail-row"><span class="detail-label">Type</span><span class="detail-value">${typeIcon} ${type}</span></div>
-          <div class="detail-row"><span class="detail-label">Source</span><span class="detail-value"><span class="memory-actor-badge ${actorClass}">${actorIcon} ${actorLabel}</span></span></div>
-          <div class="detail-row"><span class="detail-label">Agent</span><span class="detail-value">${m.source_agent_id || m.agentId || '—'}</span></div>
-          <div class="detail-row"><span class="detail-label">Conversation</span><span class="detail-value">${m.source_conversation_id || m.conversation_id || '—'}</span></div>
-          ${isSuperseded ? `<div class="detail-row"><span class="detail-label">Superseded By</span><span class="detail-value" style="font-family:monospace;font-size:11px;color:#f85149">${m.superseded_by}</span></div>` : ''}
-          ${topic ? `<div class="detail-row"><span class="detail-label">Topic</span><span class="detail-value">${escHtml(topic)}</span></div>` : ''}
-          ${scope ? `<div class="detail-row"><span class="detail-label">Scope</span><span class="detail-value">${escHtml(scope)}</span></div>` : ''}
-          ${domain ? `<div class="detail-row"><span class="detail-label">Domain</span><span class="detail-value">${escHtml(domain)}</span></div>` : ''}
-          <div class="detail-row"><span class="detail-label">Importance</span><span class="detail-value score-text-${scoreColor}">${(score * 100).toFixed(0)}%</span></div>
-          ${contentHash ? `<div class="detail-row"><span class="detail-label">Hash</span><span class="detail-value" style="font-family:monospace;font-size:11px;color:var(--text-muted)">${contentHash}</span></div>` : ''}
-          <div class="detail-row"><span class="detail-label">Created</span><span class="detail-value">${m.created_at || m.createdAt || '—'}</span></div>
-          ${m.tags && m.tags.length ? `<div class="detail-row"><span class="detail-label">Tags</span><span class="detail-value">${m.tags.map(t => `<span class="memory-tag">${escHtml(t)}</span>`).join(' ')}</span></div>` : ''}
-          <div class="full-text">${escHtml(m.content)}</div>
-          <div class="memory-actions" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; gap: 8px;">
-            <button class="btn btn-danger" onclick="event.stopPropagation(); deleteMemory('${m.id}', this)" title="Delete this memory permanently">
-              🗑️ Delete
-            </button>
+    <div class="${cardClass}" data-type="${type}" data-actor="${actorId}" data-status="${status}" onclick="toggleExpand(this)">
+      <div class="card-body p-3">
+        <div class="flex items-center gap-1.5 flex-wrap mb-1">
+          ${statusBadge}
+          <span class="badge badge-primary badge-sm">${typeIcon} ${type}</span>
+          <span class="badge ${actorBadgeClass} badge-xs">${actorIcon} ${actorLabel}</span>
+          <span class="badge badge-ghost badge-xs">${escHtml(m.source_agent_id || m.agentId || 'â€”')}</span>
+          ${topic ? `<span class="badge badge-ghost badge-xs">${escHtml(topic)}</span>` : ''}
+          <span class="ml-auto text-xs text-base-content/40">${timeAgo(m.created_at || m.createdAt)}</span>
+        </div>
+        <p class="text-sm leading-relaxed">${escHtml(truncate(m.content, 300))}</p>
+        <div class="flex items-center gap-2 mt-1">
+          <span class="text-xs text-base-content/50">Importance:</span>
+          <progress class="progress ${progressClass} w-32 h-1.5" value="${scorePercent}" max="100"></progress>
+          <span class="text-xs font-bold ${scoreTextClass}">${scorePercent}%</span>
+        </div>
+        <div class="text-xs text-primary cursor-pointer mt-1 expand-btn">â–¼ Show full</div>
+        <div class="memory-detail">
+          <div class="bg-base-300/50 rounded-lg p-3 mt-2 space-y-1 text-sm">
+            <div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">ID</span><span class="break-all font-mono text-xs">${m.id || 'â€”'}</span></div>
+            <div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Status</span><span>${statusBadge}</span></div>
+            <div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Type</span><span>${typeIcon} ${type}</span></div>
+            <div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Source</span><span class="badge ${actorBadgeClass} badge-xs">${actorIcon} ${actorLabel}</span></div>
+            <div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Agent</span><span>${m.source_agent_id || m.agentId || 'â€”'}</span></div>
+            <div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Conversation</span><span class="break-all">${m.source_conversation_id || m.conversation_id || 'â€”'}</span></div>
+            ${isSuperseded ? `<div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Superseded By</span><span class="font-mono text-xs text-error break-all">${m.superseded_by}</span></div>` : ''}
+            ${topic ? `<div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Topic</span><span>${escHtml(topic)}</span></div>` : ''}
+            ${scope ? `<div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Scope</span><span>${escHtml(scope)}</span></div>` : ''}
+            ${domain ? `<div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Domain</span><span>${escHtml(domain)}</span></div>` : ''}
+            <div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Importance</span><span class="font-bold ${scoreTextClass}">${scorePercent}%</span></div>
+            ${contentHash ? `<div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Hash</span><span class="font-mono text-xs text-base-content/40 break-all">${contentHash}</span></div>` : ''}
+            <div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Created</span><span>${m.created_at || m.createdAt || 'â€”'}</span></div>
+            ${m.tags && m.tags.length ? `<div class="flex gap-3"><span class="text-xs font-semibold text-base-content/50 w-28 shrink-0">Tags</span><span class="flex gap-1 flex-wrap">${m.tags.map(t => `<span class="badge badge-outline badge-xs">${escHtml(t)}</span>`).join('')}</span></div>` : ''}
+            <div class="bg-base-300/40 rounded-lg p-3 mt-2 text-sm whitespace-pre-wrap">${escHtml(m.content)}</div>
+            <div class="flex gap-2 mt-3 pt-3 border-t border-base-300">
+              <button class="btn btn-error btn-sm" onclick="event.stopPropagation(); deleteMemory('${m.id}', this)" title="Delete this memory permanently">
+                ðŸ—‘ï¸ Delete
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -704,7 +705,7 @@ function renderMemory(m) {
 function toggleExpand(el) {
     el.classList.toggle('expanded');
     const btn = el.querySelector('.expand-btn');
-    if (btn) btn.textContent = el.classList.contains('expanded') ? '▲ Collapse' : '▼ Show full';
+    if (btn) btn.textContent = el.classList.contains('expanded') ? 'â–² Collapse' : 'â–¼ Show full';
 }
 
 async function loadDashMemories() {
@@ -715,14 +716,14 @@ async function loadDashMemories() {
         }
     } catch {
         document.getElementById('dash-memories-list').innerHTML =
-            '<div class="empty-state"><span class="icon">💾</span> No exchanges yet</div>';
+            '<div class="text-center text-base-content/40 py-8">ðŸ’¾</span> No exchanges yet</div>';
     }
 }
 
 function renderFilteredMemories(containerId, items) {
     const container = document.getElementById(containerId);
     if (!items.length) {
-        container.innerHTML = '<div class="empty-state"><span class="icon">💾</span> No data found</div>';
+        container.innerHTML = '<div class="text-center text-base-content/40 py-8">ðŸ’¾</span> No data found</div>';
         return;
     }
     container.innerHTML = items.map(renderMemory).join('');
@@ -763,7 +764,7 @@ async function loadMemoriesFull() {
         applyMemoryFilters();
     } catch {
         document.getElementById('memories-full-list').innerHTML =
-            '<div class="empty-state"><span class="icon">💾</span> Failed to load data</div>';
+            '<div class="text-center text-base-content/40 py-8">ðŸ’¾</span> Failed to load data</div>';
     }
 }
 
@@ -829,7 +830,7 @@ function applyMemoryFilters() {
     renderFilteredMemories('memories-full-list', filtered);
 }
 
-// ============ KNOWLEDGE (removed — Mem0 style, facts in Qdrant are the KB) ============
+// ============ KNOWLEDGE (removed â€” Mem0 style, facts in Qdrant are the KB) ============
 
 // ============ LOGS ============
 
@@ -909,7 +910,7 @@ function clearLogs() {
     allLogs = [];
     ['dash-logs-list', 'logs-full-list'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.innerHTML = '<div class="empty-state"><span class="icon">📋</span> Logs cleared</div>';
+        if (el) el.innerHTML = '<div class="text-center text-base-content/40 py-8">ðŸ“‹</span> Logs cleared</div>';
     });
 }
 
@@ -938,7 +939,7 @@ function capitalize(str) {
 }
 
 function timeAgo(dateStr) {
-    if (!dateStr) return '—';
+    if (!dateStr) return 'â€”';
     const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
     if (seconds < 60) return `${seconds}s ago`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
@@ -999,7 +1000,7 @@ async function renderMemoloApiKeysPanel() {
         if (statusEl && json) {
             const authEnabled = json.auth === 'enabled';
             const badgeClass = authEnabled ? 'badge-success' : 'badge-warning';
-            const statusIcon = authEnabled ? '✓' : '⚠';
+            const statusIcon = authEnabled ? 'âœ“' : 'âš ';
             const statusText = authEnabled ? 'Enabled' : 'Disabled (dev mode)';
             statusEl.innerHTML = `<span class="badge ${badgeClass}">${statusIcon} ${statusText}</span>`;
         }
@@ -1010,7 +1011,7 @@ async function renderMemoloApiKeysPanel() {
         const countEl = document.getElementById('agent-keys-count');
         if (countEl && res.success) {
             const count = res.data.length;
-            countEl.innerHTML = `<span class="badge badge-ghost">🤖 ${count} agent${count !== 1 ? 's' : ''}</span>`;
+            countEl.innerHTML = `<span class="badge badge-ghost">ðŸ¤– ${count} agent${count !== 1 ? 's' : ''}</span>`;
         }
     } catch { }
 }
@@ -1028,20 +1029,20 @@ function renderSettingsForm() {
     }
 
     const groupIcons = {
-        'LLM Models': '🤖',
-        'Embeddings': '🔗',
-        'Feature Toggles': '🔀',
-        'Timeouts': '⏱️',
-        'Memory': '🧠',
-        'Scheduler': '📅',
-        'Batch': '📦',
-        'Prompts': '📝',
+        'LLM Models': 'ðŸ¤–',
+        'Embeddings': 'ðŸ”—',
+        'Feature Toggles': 'ðŸ”€',
+        'Timeouts': 'â±ï¸',
+        'Memory': 'ðŸ§ ',
+        'Scheduler': 'ðŸ“…',
+        'Batch': 'ðŸ“¦',
+        'Prompts': 'ðŸ“',
     };
 
 
     let html = '';
     for (const [groupName, items] of Object.entries(groups)) {
-        const icon = groupIcons[groupName] || '⚙️';
+        const icon = groupIcons[groupName] || 'âš™ï¸';
         html += `<div class="setting-group">`;
         html += `<div class="setting-group-header">${icon} ${groupName}</div>`;
 
@@ -1050,7 +1051,7 @@ function renderSettingsForm() {
             const currentModel = (settingsModified['minimax.model'] !== undefined ? settingsModified['minimax.model'] : settingsData['minimax.model']?.value) || 'MiniMax-M2.5';
             html += `<div class="llm-status-banner" style="background: linear-gradient(135deg, #6366f122, #6366f111); border: 1px solid #6366f144; border-radius: 12px; padding: 16px 20px; margin: 12px 16px 4px;">`;
             html += `<div style="display: flex; align-items: center; gap: 12px;">`;
-            html += `<div style="font-size: 28px;">☁️</div>`;
+            html += `<div style="font-size: 28px;">â˜ï¸</div>`;
             html += `<div>`;
             html += `<div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6366f1; font-weight: 600; margin-bottom: 2px;">Active LLM Provider</div>`;
             html += `<div style="font-size: 18px; font-weight: 700; color: var(--text-primary);">MiniMax (Cloud)</div>`;
@@ -1105,7 +1106,7 @@ function renderSettingsForm() {
                 html += `<div class="flex items-center justify-between mt-1">`;
                 html += `<span class="char-count text-xs text-base-content/40">${charCount} chars</span>`;
                 if (!isDefault) {
-                    html += `<button class="btn btn-ghost btn-xs" onclick="resetSingleSetting('${item.key}')" title="Reset to default prompt">↩ Reset</button>`;
+                    html += `<button class="btn btn-ghost btn-xs" onclick="resetSingleSetting('${item.key}')" title="Reset to default prompt">â†© Reset</button>`;
                 }
                 html += `</div>`;
                 html += `</div>`;
@@ -1118,9 +1119,9 @@ function renderSettingsForm() {
                 html += `${inputType === 'password' ? ' autocomplete="off"' : ''}>`;
             }
 
-            // Reset single setting button (skip for textarea — they have their own)
+            // Reset single setting button (skip for textarea â€” they have their own)
             if (!isDefault && item.type !== 'textarea') {
-                html += `<button class="btn btn-ghost btn-xs" onclick="resetSingleSetting('${item.key}')" title="Reset to default: ${item.default}">↩</button>`;
+                html += `<button class="btn btn-ghost btn-xs" onclick="resetSingleSetting('${item.key}')" title="Reset to default: ${item.default}">â†©</button>`;
             }
 
             html += `</div>`; // setting-control
@@ -1165,15 +1166,15 @@ async function saveSettings() {
         const json = await res.json();
 
         if (json.success) {
-            showToast(`✅ Saved ${Object.keys(settingsModified).length} setting(s)`, 'success');
+            showToast(`âœ… Saved ${Object.keys(settingsModified).length} setting(s)`, 'success');
             settingsModified = {};
             // Reload to get fresh values
             await loadSettings();
         } else {
-            showToast(`❌ Error: ${json.errors?.join(', ') || 'Unknown error'}`, 'error');
+            showToast(`âŒ Error: ${json.errors?.join(', ') || 'Unknown error'}`, 'error');
         }
     } catch (err) {
-        showToast(`❌ Failed to save: ${err.message}`, 'error');
+        showToast(`âŒ Failed to save: ${err.message}`, 'error');
     }
 }
 
@@ -1188,12 +1189,12 @@ async function resetAllSettings() {
         });
         const json = await res.json();
         if (json.success) {
-            showToast('🔄 All settings reset to defaults', 'success');
+            showToast('ðŸ”„ All settings reset to defaults', 'success');
             settingsModified = {};
             await loadSettings();
         }
     } catch (err) {
-        showToast(`❌ Failed to reset: ${err.message}`, 'error');
+        showToast(`âŒ Failed to reset: ${err.message}`, 'error');
     }
 }
 
@@ -1207,11 +1208,11 @@ async function resetSingleSetting(key) {
         const json = await res.json();
         if (json.success) {
             delete settingsModified[key];
-            showToast(`↩ Reset ${key}`, 'info');
+            showToast(`â†© Reset ${key}`, 'info');
             await loadSettings();
         }
     } catch (err) {
-        showToast(`❌ Failed to reset: ${err.message}`, 'error');
+        showToast(`âŒ Failed to reset: ${err.message}`, 'error');
     }
 }
 
@@ -1246,8 +1247,8 @@ async function executeRecall() {
     const resultsDiv = document.getElementById('recall-results');
 
     btn.disabled = true;
-    btn.textContent = '⏳ Recalling...';
-    resultsDiv.innerHTML = '<div class="empty-state"><span class="icon">⏳</span> Searching memories...</div>';
+    btn.textContent = 'â³ Recalling...';
+    resultsDiv.innerHTML = '<div class="text-center text-base-content/40 py-8">â³</span> Searching memories...</div>';
 
     const t0 = performance.now();
 
@@ -1269,7 +1270,7 @@ async function executeRecall() {
         lastRecallResponse = json;
 
         if (!json.success) {
-            resultsDiv.innerHTML = `<div class="empty-state"><span class="icon">❌</span> Error: ${json.error || 'Unknown error'}</div>`;
+            resultsDiv.innerHTML = `<div class="text-center text-base-content/40 py-8">âŒ</span> Error: ${json.error || 'Unknown error'}</div>`;
             return;
         }
 
@@ -1280,10 +1281,10 @@ async function executeRecall() {
         }
 
     } catch (err) {
-        resultsDiv.innerHTML = `<div class="empty-state"><span class="icon">❌</span> Failed: ${err.message}</div>`;
+        resultsDiv.innerHTML = `<div class="text-center text-base-content/40 py-8">âŒ</span> Failed: ${err.message}</div>`;
     } finally {
         btn.disabled = false;
-        btn.textContent = '🔍 Recall';
+        btn.textContent = 'ðŸ” Recall';
     }
 }
 
@@ -1291,58 +1292,56 @@ function renderRecallResults(data, elapsed, query) {
     const container = document.getElementById('recall-results');
 
     const sections = [
-        { key: 'semanticMemories', label: '🧠 Semantic Memories', icon: '🧠', description: 'Extracted facts via vector search' },
-        { key: 'crossAgentMemories', label: '🔗 Cross-Agent Memories', icon: '🔗', description: 'Memories from other agents' },
-        { key: 'summaries', label: '📝 Summaries', icon: '📝', description: 'Conversation summaries' },
-
+        { key: 'semanticMemories', label: 'ðŸ§  Semantic Memories', icon: 'ðŸ§ ', description: 'Extracted facts via vector search' },
+        { key: 'crossAgentMemories', label: 'ðŸ”— Cross-Agent Memories', icon: 'ðŸ”—', description: 'Memories from other agents' },
+        { key: 'summaries', label: 'ðŸ“ Summaries', icon: 'ðŸ“', description: 'Conversation summaries' },
     ];
 
-    // Count total results
     let totalCount = 0;
     for (const s of sections) {
         const arr = data[s.key];
         if (Array.isArray(arr)) totalCount += arr.length;
     }
 
-    let html = `<div class="recall-summary-bar">`;
-    html += `<span>🔍 <strong>${totalCount}</strong> results in <strong>${elapsed}ms</strong></span>`;
-    html += `<span class="recall-query-echo">Query: "${escapeHtml(query)}"</span>`;
-    html += `<button class="btn" onclick="toggleRawJson()">📦 Show JSON</button>`;
+    let html = `<div class="flex items-center gap-3 bg-base-200 rounded-lg p-3 mb-4">`;
+    html += `<span class="text-sm">ðŸ” <strong>${totalCount}</strong> results in <strong>${elapsed}ms</strong></span>`;
+    html += `<span class="text-xs text-base-content/50 flex-1">Query: "${escapeHtml(query)}"</span>`;
+    html += `<button class="btn btn-ghost btn-sm" onclick="toggleRawJson()">ðŸ“¦ Show JSON</button>`;
     html += `</div>`;
 
     for (const section of sections) {
         const items = data[section.key];
         if (!Array.isArray(items) || items.length === 0) continue;
 
-        html += `<div class="recall-section">`;
-        html += `<div class="recall-section-header">${section.label} <span class="badge">${items.length}</span></div>`;
-        html += `<div class="recall-section-body">`;
+        html += `<div class="card bg-base-200 shadow-sm mb-3">`;
+        html += `<div class="card-body p-0">`;
+        html += `<div class="px-4 py-2 border-b border-base-300 flex items-center gap-2"><span class="font-bold text-sm">${section.label}</span><span class="badge badge-primary badge-sm">${items.length}</span></div>`;
+        html += `<div class="p-3 space-y-2">`;
 
         for (const item of items) {
             html += renderRecallItem(item, section.key);
         }
 
-        html += `</div></div>`;
+        html += `</div></div></div>`;
     }
 
-    // Conversation profile if present
     if (data.conversationProfile && Object.keys(data.conversationProfile).length > 0) {
-        html += `<div class="recall-section">`;
-        html += `<div class="recall-section-header">👤 Conversation Profile</div>`;
-        html += `<div class="recall-section-body">`;
-        html += `<div class="recall-item"><pre class="recall-profile-json">${escapeHtml(JSON.stringify(data.conversationProfile, null, 2))}</pre></div>`;
+        html += `<div class="card bg-base-200 shadow-sm mb-3">`;
+        html += `<div class="card-body p-0">`;
+        html += `<div class="px-4 py-2 border-b border-base-300 font-bold text-sm">ðŸ‘¤ Conversation Profile</div>`;
+        html += `<div class="p-3"><pre class="text-xs whitespace-pre-wrap font-mono bg-base-300/50 rounded-lg p-3">${escapeHtml(JSON.stringify(data.conversationProfile, null, 2))}</pre></div>`;
         html += `</div></div>`;
     }
 
     if (totalCount === 0) {
-        html += `<div class="empty-state"><span class="icon">🤷</span> No memories found for this query</div>`;
+        html += `<div class="text-center text-base-content/40 py-8">ðŸ¤· No memories found for this query</div>`;
     }
 
     container.innerHTML = html;
 }
 
 function renderRecallItem(item, sectionKey) {
-    let html = `<div class="recall-item">`;
+    let html = `<div class="bg-base-300/40 rounded-lg p-3">`;
 
     if (sectionKey === 'semanticMemories' || sectionKey === 'crossAgentMemories') {
         const score = item.score !== undefined ? (item.score * 100).toFixed(1) : null;
@@ -1353,24 +1352,24 @@ function renderRecallItem(item, sectionKey) {
         const tags = payload.content_tags || [];
         const topic = payload.topic || '';
 
-        html += `<div class="recall-item-header">`;
+        html += `<div class="flex items-center gap-1.5 flex-wrap mb-2">`;
         if (score !== null) {
-            const scoreClass = score >= 70 ? 'high' : score >= 50 ? 'mid' : 'low';
-            html += `<span class="recall-score ${scoreClass}">${score}%</span>`;
+            const scoreBadge = score >= 70 ? 'badge-success' : score >= 50 ? 'badge-warning' : 'badge-error';
+            html += `<span class="badge ${scoreBadge} badge-sm font-mono">${score}%</span>`;
         }
-        if (agentId) html += `<span class="recall-agent-tag">${escapeHtml(agentId)}</span>`;
-        if (topic) html += `<span class="recall-topic-tag">${escapeHtml(topic)}</span>`;
-        if (importance !== undefined) html += `<span class="recall-importance">⚡${(importance * 100).toFixed(0)}</span>`;
+        if (agentId) html += `<span class="badge badge-ghost badge-xs">${escapeHtml(agentId)}</span>`;
+        if (topic) html += `<span class="badge badge-ghost badge-xs">${escapeHtml(topic)}</span>`;
+        if (importance !== undefined) html += `<span class="badge badge-accent badge-xs">âš¡${(importance * 100).toFixed(0)}</span>`;
         html += `</div>`;
-        html += `<div class="recall-item-content">${escapeHtml(content)}</div>`;
+        html += `<div class="text-sm">${escapeHtml(content)}</div>`;
         if (tags.length > 0) {
-            html += `<div class="recall-tags">${tags.map(t => `<span class="recall-tag">${escapeHtml(t)}</span>`).join('')}</div>`;
+            html += `<div class="flex gap-1 flex-wrap mt-2">${tags.map(t => `<span class="badge badge-outline badge-xs">${escapeHtml(t)}</span>`).join('')}</div>`;
         }
     } else if (sectionKey === 'summaries') {
         const summary = item.summary || item.content || JSON.stringify(item);
-        html += `<div class="recall-item-content recall-summary-text">${escapeHtml(summary)}</div>`;
+        html += `<div class="text-sm italic">${escapeHtml(summary)}</div>`;
     } else {
-        html += `<div class="recall-item-content">${escapeHtml(JSON.stringify(item, null, 2))}</div>`;
+        html += `<div class="text-sm font-mono">${escapeHtml(JSON.stringify(item, null, 2))}</div>`;
     }
 
     html += `</div>`;
@@ -1381,21 +1380,19 @@ function renderContextFormat(json, elapsed, query) {
     const container = document.getElementById('recall-results');
     const rawCount = json.raw ? Object.values(json.raw).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0) : 0;
 
-    let html = `<div class="recall-summary-bar">`;
-    html += `<span>🔍 <strong>${rawCount}</strong> memories → context in <strong>${elapsed}ms</strong></span>`;
-    html += `<span class="recall-query-echo">Query: "${escapeHtml(query)}"</span>`;
-    html += `<button class="btn" onclick="toggleRawJson()">📦 Show JSON</button>`;
+    let html = `<div class="flex items-center gap-3 bg-base-200 rounded-lg p-3 mb-4">`;
+    html += `<span class="text-sm">ðŸ” <strong>${rawCount}</strong> memories â†’ context in <strong>${elapsed}ms</strong></span>`;
+    html += `<span class="text-xs text-base-content/50 flex-1">Query: "${escapeHtml(query)}"</span>`;
+    html += `<button class="btn btn-ghost btn-sm" onclick="toggleRawJson()">ðŸ“¦ Show JSON</button>`;
     html += `</div>`;
 
-    html += `<div class="recall-section">`;
-    html += `<div class="recall-section-header">📄 LLM Context String</div>`;
-    html += `<div class="recall-section-body">`;
-    html += `<div class="recall-item">`;
-    html += `<div class="recall-context-box">`;
-    html += `<button class="btn recall-copy-btn" onclick="copyContext()">📋 Copy</button>`;
-    html += `<pre class="recall-context-pre">${escapeHtml(json.context)}</pre>`;
-    html += `</div></div>`;
-    html += `</div></div>`;
+    html += `<div class="card bg-base-200 shadow-sm">`;
+    html += `<div class="card-body p-0">`;
+    html += `<div class="px-4 py-2 border-b border-base-300 font-bold text-sm">ðŸ“„ LLM Context String</div>`;
+    html += `<div class="p-3 relative">`;
+    html += `<button class="btn btn-ghost btn-sm absolute top-4 right-4" onclick="copyContext()">ðŸ“‹ Copy</button>`;
+    html += `<pre class="text-xs whitespace-pre-wrap font-mono bg-base-300/50 rounded-lg p-3">${escapeHtml(json.context)}</pre>`;
+    html += `</div></div></div>`;
 
     container.innerHTML = html;
 }
@@ -1403,7 +1400,7 @@ function renderContextFormat(json, elapsed, query) {
 function copyContext() {
     if (!lastRecallResponse || !lastRecallResponse.context) return;
     navigator.clipboard.writeText(lastRecallResponse.context).then(() => {
-        showToast('📋 Context copied to clipboard', 'success');
+        showToast('ðŸ“‹ Context copied to clipboard', 'success');
     });
 }
 
@@ -1431,7 +1428,7 @@ async function deleteMemory(memoryId, btnEl) {
     }
 
     btnEl.disabled = true;
-    btnEl.textContent = '⏳ Deleting...';
+    btnEl.textContent = 'â³ Deleting...';
 
     try {
         const result = await api('DELETE', `/api/memory/${memoryId}`);
@@ -1446,14 +1443,14 @@ async function deleteMemory(memoryId, btnEl) {
             }
             // Remove from allMemories
             allMemories = allMemories.filter(m => m.id !== memoryId);
-            showToast('🗑️', 'Memory Deleted', 'Successfully removed from database and vector store');
+            showToast('ðŸ—‘ï¸', 'Memory Deleted', 'Successfully removed from database and vector store');
         } else {
             throw new Error(result.error || 'Delete failed');
         }
     } catch (err) {
         btnEl.disabled = false;
-        btnEl.textContent = '🗑️ Delete';
-        showToast('❌', 'Delete Failed', err.message);
+        btnEl.textContent = 'ðŸ—‘ï¸ Delete';
+        showToast('âŒ', 'Delete Failed', err.message);
     }
 }
 
@@ -1474,7 +1471,7 @@ async function submitAddMemory() {
     const importance = parseInt(document.getElementById('add-mem-importance').value) / 100;
 
     if (!content) {
-        showToast('⚠️', 'Missing Content', 'Please enter the memory content');
+        showToast('âš ï¸', 'Missing Content', 'Please enter the memory content');
         document.getElementById('add-mem-content').focus();
         return;
     }
@@ -1482,7 +1479,7 @@ async function submitAddMemory() {
     const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(t => t) : [];
     const btn = document.getElementById('btn-add-memory-submit');
     btn.disabled = true;
-    btn.textContent = '⏳ Adding...';
+    btn.textContent = 'â³ Adding...';
 
     try {
         const result = await api('POST', '/api/memory/memories/add', {
@@ -1494,7 +1491,7 @@ async function submitAddMemory() {
         });
 
         if (result.success) {
-            showToast('✅', 'Memory Added', `"${content.substring(0, 50)}..." saved successfully`);
+            showToast('âœ…', 'Memory Added', `"${content.substring(0, 50)}..." saved successfully`);
             // Reset form
             document.getElementById('add-mem-content').value = '';
             document.getElementById('add-mem-tags').value = '';
@@ -1508,9 +1505,9 @@ async function submitAddMemory() {
             throw new Error(result.error || 'Failed to add memory');
         }
     } catch (err) {
-        showToast('❌', 'Add Failed', err.message);
+        showToast('âŒ', 'Add Failed', err.message);
     } finally {
         btn.disabled = false;
-        btn.textContent = '➕ Add Memory';
+        btn.textContent = 'âž• Add Memory';
     }
 }

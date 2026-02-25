@@ -1,7 +1,7 @@
 /* ============================================================
    Memolo Dashboard — Custom Styles (DaisyUI + Tailwind)
-   Only layout helpers, animations, and component-specific CSS.
-   DaisyUI handles colors, typography, and component styles.
+   Minimal CSS for layout, animations, and unique components.
+   Everything else is handled by DaisyUI classes in HTML/JS.
    ============================================================ */
 
 /* === PAGE VISIBILITY === */
@@ -11,14 +11,13 @@
 
 .page.active {
   display: block;
-  animation: fadeSlideIn 0.25s ease-out;
+  animation: fadeIn 0.2s ease-out;
 }
 
-/* === ANIMATIONS === */
-@keyframes fadeSlideIn {
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
 
   to {
@@ -27,37 +26,33 @@
   }
 }
 
-@keyframes flash {
-
-  0%,
-  100% {
-    background: transparent;
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
   }
 
-  50% {
-    background: oklch(var(--p) / 0.15);
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
-.flash {
-  animation: flash 0.6s ease;
-}
-
-/* === SIDEBAR === */
+/* === SIDEBAR ACTIVE STATE === */
 .sidebar-link.active {
-  background: oklch(var(--p) / 0.15);
+  background: oklch(var(--p) / 0.12);
   color: oklch(var(--p));
   font-weight: 600;
 }
 
-/* === HEALTH & SSE DOTS === */
+/* === STATUS INDICATORS === */
 .health-dot,
 .sse-dot {
+  display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  display: inline-block;
-  background: oklch(var(--wa));
+  background: oklch(var(--bc) / 0.3);
 }
 
 .health-dot.ok {
@@ -94,540 +89,43 @@
 }
 
 /* === STAT FLASH === */
-.stat-value.flash {
+.stat.flash {
   animation: flash 0.6s ease;
 }
 
-/* === ACTIVITY FEED === */
-.activity-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid oklch(var(--b3) / 0.5);
-  font-size: 0.85rem;
-  animation: fadeSlideIn 0.3s ease-out;
-}
-
-.activity-item:last-child {
-  border-bottom: none;
-}
-
-.activity-item .activity-icon {
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-.activity-item .activity-title {
-  font-weight: 600;
-}
-
-.activity-item .activity-desc {
-  color: oklch(var(--bc) / 0.6);
-}
-
-.activity-item .activity-time {
-  margin-left: auto;
-  font-size: 0.72rem;
-  color: oklch(var(--bc) / 0.4);
-  white-space: nowrap;
-}
-
-.activity-item .activity-source {
-  font-size: 0.65rem;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: oklch(var(--b3));
-  color: oklch(var(--bc) / 0.5);
-  flex-shrink: 0;
-}
-
-/* === MEMORY ITEMS === */
-.memory-item {
-  border: 1px solid oklch(var(--b3));
-  border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.memory-item:hover {
-  background: oklch(var(--b3) / 0.5);
-}
-
-.memory-item.superseded {
-  opacity: 0.55;
-}
-
-.memory-header {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.4rem;
-}
-
-.memory-time {
-  margin-left: auto;
-  font-size: 0.72rem;
-  color: oklch(var(--bc) / 0.4);
-  white-space: nowrap;
-}
-
-/* Memory badge color mapping via DaisyUI badge component */
-.memory-type {
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
-.memory-type.fact {
-  --badge-color: oklch(var(--su));
-}
-
-.memory-type.decision {
-  --badge-color: oklch(var(--a));
-}
-
-.memory-type.preference {
-  --badge-color: oklch(var(--wa));
-}
-
-.memory-type.exchange {
-  --badge-color: oklch(var(--in));
-}
-
-.memory-content {
-  font-size: 0.88rem;
-  line-height: 1.5;
-  color: oklch(var(--bc) / 0.85);
-  margin-bottom: 0.4rem;
-}
-
-.memory-score {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.3rem;
-}
-
-.score-label-prefix {
-  font-size: 0.72rem;
-  color: oklch(var(--bc) / 0.5);
-}
-
-/* Expand/Collapse */
-.memory-detail {
-  display: none;
-}
-
-.memory-item.expanded .memory-detail {
-  display: block;
-  margin-top: 0.5rem;
-}
-
-.expand-btn {
-  font-size: 0.72rem;
-  color: oklch(var(--p));
-  cursor: pointer;
-  display: inline-block;
-  padding: 2px 0;
-}
-
-.expand-btn:hover {
-  text-decoration: underline;
-}
-
-/* Detail rows */
-.memory-detail-content {
-  background: oklch(var(--b3) / 0.5);
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-}
-
-.detail-row {
-  display: flex;
-  align-items: baseline;
-  padding: 0.25rem 0;
-  border-bottom: 1px solid oklch(var(--b3) / 0.3);
-  gap: 0.75rem;
-  font-size: 0.82rem;
-}
-
-.detail-row:last-child {
-  border-bottom: none;
-}
-
-.detail-label {
-  font-weight: 600;
-  color: oklch(var(--bc) / 0.5);
-  min-width: 110px;
-  flex-shrink: 0;
-  font-size: 0.78rem;
-}
-
-.detail-value {
-  color: oklch(var(--bc));
-  word-break: break-all;
-}
-
-.full-text {
-  margin-top: 0.5rem;
-  padding: 0.75rem;
-  background: oklch(var(--b3) / 0.4);
-  border-radius: 0.5rem;
-  font-size: 0.82rem;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-/* === CONVERSATION LIST === */
-.conv-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0.75rem;
-  border-bottom: 1px solid oklch(var(--b3) / 0.3);
-  cursor: pointer;
-  transition: background 0.15s;
-  border-left: 3px solid transparent;
-}
-
-.conv-item:hover {
-  background: oklch(var(--b3) / 0.3);
-}
-
-.conv-item.active {
-  background: oklch(var(--p) / 0.08);
-  border-left-color: oklch(var(--p));
-}
-
-.conv-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.8rem;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.conv-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.conv-title {
-  font-weight: 600;
-  font-size: 0.88rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.conv-subtitle {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.75rem;
-  color: oklch(var(--bc) / 0.5);
-  flex-wrap: wrap;
-}
-
-.conv-status {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  display: inline-block;
-  background: oklch(var(--bc) / 0.3);
-}
-
-.conv-status.active {
-  background: oklch(var(--su));
-}
-
-.conv-status.ended {
-  background: oklch(var(--bc) / 0.3);
-}
-
-.conv-badge,
-.conv-topic-badge {
-  font-size: 0.65rem;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.conv-badge {
-  background: oklch(var(--in) / 0.15);
-  color: oklch(var(--in));
-}
-
-.conv-topic-badge {
-  background: oklch(var(--b3));
-  color: oklch(var(--bc) / 0.6);
-}
-
-.conv-time {
-  font-size: 0.7rem;
-  color: oklch(var(--bc) / 0.4);
-  white-space: nowrap;
-  margin-left: auto;
-}
-
-/* === THREAD MESSAGES (Chat) === */
-.thread-message {
-  margin-bottom: 0.75rem;
-}
-
-.thread-message-user,
-.thread-message-agent {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-}
-
-.thread-msg-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
-  flex-shrink: 0;
-}
-
-.thread-msg-avatar.user {
-  background: oklch(var(--in) / 0.15);
-}
-
-.thread-msg-avatar.agent {
-  background: oklch(var(--su) / 0.15);
-}
-
-.thread-msg-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.thread-msg-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.2rem;
-}
-
-.thread-msg-name {
-  font-weight: 600;
-  font-size: 0.82rem;
-}
-
-.thread-msg-name.user {
-  color: oklch(var(--in));
-}
-
-.thread-msg-name.agent {
-  color: oklch(var(--su));
-}
-
-.thread-msg-time {
-  font-size: 0.7rem;
-  color: oklch(var(--bc) / 0.4);
-}
-
-.thread-msg-content {
-  font-size: 0.88rem;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  padding: 0.5rem 0.75rem;
-  background: oklch(var(--b3) / 0.4);
-  border-radius: 0.5rem;
-}
-
-.thread-divider {
-  text-align: center;
-  color: oklch(var(--bc) / 0.15);
-  font-size: 0.6rem;
-  margin: 0.4rem 0;
-}
-
-/* === CONVERSATION SUMMARY === */
-.conv-summary-card {
-  background: oklch(var(--b3) / 0.4);
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 0.5rem;
-  border-left: 3px solid oklch(var(--p));
-}
-
-.conv-summary-text {
-  font-size: 0.88rem;
-  line-height: 1.6;
-  margin-bottom: 0.5rem;
-}
-
-.conv-summary-label {
-  font-weight: 600;
-  font-size: 0.78rem;
-  margin-bottom: 0.3rem;
-  color: oklch(var(--bc) / 0.6);
-}
-
-.conv-summary-facts ul,
-.conv-summary-decisions ul {
-  padding-left: 1.2rem;
-  font-size: 0.82rem;
-}
-
-.conv-summary-meta {
-  font-size: 0.72rem;
-  color: oklch(var(--bc) / 0.4);
-  margin-top: 0.4rem;
-}
-
-/* === CONV KNOWLEDGE TAGS === */
-.conv-knowledge-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.78rem;
-  padding: 4px 10px;
-  border-radius: 0.5rem;
-  background: oklch(var(--p) / 0.08);
-  border: 1px solid oklch(var(--p) / 0.15);
-  color: oklch(var(--bc));
-  max-width: 450px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition: background 0.15s;
-}
-
-.conv-knowledge-tag:hover {
-  background: oklch(var(--p) / 0.15);
-}
-
-/* === AGENT ITEMS === */
-.agent-item {
-  display: flex;
-  gap: 0.75rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid oklch(var(--b3) / 0.3);
-  align-items: flex-start;
-}
-
-.agent-item:last-child {
-  border-bottom: none;
-}
-
-.agent-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.agent-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.agent-name {
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.agent-meta {
-  font-size: 0.75rem;
-  color: oklch(var(--bc) / 0.5);
-}
-
-.agent-stats {
-  display: flex;
-  gap: 1rem;
-  font-size: 0.78rem;
-  color: oklch(var(--bc) / 0.6);
-  margin-top: 0.3rem;
-  flex-wrap: wrap;
-}
-
-.agent-key-section {
-  margin-top: 0.5rem;
-}
-
-.agent-key-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  padding: 0.4rem 0.6rem;
-  background: oklch(var(--b3) / 0.5);
-  border-radius: 0.4rem;
-}
-
-.agent-key-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: oklch(var(--bc) / 0.6);
-}
-
-.agent-key-value {
-  font-family: monospace;
-  font-size: 0.72rem;
-  color: oklch(var(--p));
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.agent-key-actions {
-  display: flex;
-  gap: 0.3rem;
+@keyframes flash {
+
+  0%,
+  100% {
+    background: inherit;
+  }
+
+  50% {
+    background: oklch(var(--p) / 0.12);
+  }
 }
 
 /* === LOG ENTRIES === */
 .log-entry {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
   gap: 0.5rem;
-  padding: 0.3rem 0;
-  border-bottom: 1px solid oklch(var(--b3) / 0.2);
+  padding: 3px 0;
   font-size: 0.78rem;
-  font-family: ui-monospace, monospace;
-  line-height: 1.4;
-}
-
-.log-entry:last-child {
-  border-bottom: none;
+  font-family: 'Fira Mono', 'Cascadia Code', monospace;
+  animation: fadeSlideIn 0.3s ease-out;
+  border-bottom: 1px solid oklch(var(--b3) / 0.2);
 }
 
 .log-time {
-  color: oklch(var(--bc) / 0.35);
-  font-size: 0.7rem;
+  color: oklch(var(--bc) / 0.4);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .log-source {
-  font-size: 0.65rem;
-  padding: 1px 5px;
-  border-radius: 3px;
-  background: oklch(var(--b3));
-  color: oklch(var(--bc) / 0.5);
+  color: oklch(var(--a));
+  font-weight: 600;
   flex-shrink: 0;
 }
 
@@ -636,7 +134,21 @@
   word-break: break-all;
 }
 
-/* === SETTINGS === */
+/* === MEMORY DETAIL (expand/collapse) === */
+.memory-detail {
+  display: none;
+  margin-top: 0.5rem;
+}
+
+.expanded .memory-detail {
+  display: block;
+}
+
+.expand-btn {
+  cursor: pointer;
+}
+
+/* === SETTINGS FORM === */
 .setting-group {
   background: oklch(var(--b2));
   border: 1px solid oklch(var(--b3));
@@ -660,13 +172,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
   padding: 0.6rem 1rem;
   border-bottom: 1px solid oklch(var(--b3) / 0.3);
-  gap: 1rem;
+  transition: background 0.15s;
+}
+
+.setting-row:hover {
+  background: oklch(var(--b3) / 0.25);
 }
 
 .setting-row:last-child {
   border-bottom: none;
+}
+
+.setting-row.modified {
+  border-left: 3px solid oklch(var(--wa));
 }
 
 .setting-info {
@@ -676,12 +197,13 @@
 
 .setting-name {
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
 }
 
 .setting-desc {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: oklch(var(--bc) / 0.5);
+  margin-top: 2px;
 }
 
 .setting-control {
@@ -691,207 +213,15 @@
   flex-shrink: 0;
 }
 
-.setting-modified {
-  font-size: 0.65rem;
-  padding: 1px 5px;
-  border-radius: 3px;
-  background: oklch(var(--wa) / 0.15);
-  color: oklch(var(--wa));
-}
-
-/* === RECALL === */
-.recall-summary-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: oklch(var(--b2));
-  border: 1px solid oklch(var(--b3));
-  border-radius: 0.75rem;
-  margin-bottom: 1rem;
-  font-size: 0.88rem;
-}
-
-.recall-query-echo {
-  font-size: 0.8rem;
+.setting-unit {
+  font-size: 0.72rem;
   color: oklch(var(--bc) / 0.5);
-  font-style: italic;
-  max-width: 400px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.recall-section {
-  background: oklch(var(--b2));
-  border: 1px solid oklch(var(--b3));
-  border-radius: 0.75rem;
-  overflow: hidden;
-  margin-bottom: 1rem;
-}
-
-.recall-section-header {
+.number-input-group {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.6rem 1rem;
-  font-weight: 700;
-  font-size: 0.92rem;
-  background: oklch(var(--b3) / 0.5);
-  border-bottom: 1px solid oklch(var(--b3));
-}
-
-.recall-section-body {
-  padding: 0;
-}
-
-.recall-item {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid oklch(var(--b3) / 0.3);
-  transition: background 0.15s;
-}
-
-.recall-item:last-child {
-  border-bottom: none;
-}
-
-.recall-item:hover {
-  background: oklch(var(--b3) / 0.2);
-}
-
-.recall-item-header {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.3rem;
-}
-
-.recall-score {
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 0.4rem;
-}
-
-.recall-score.high {
-  background: oklch(var(--su) / 0.15);
-  color: oklch(var(--su));
-}
-
-.recall-score.mid {
-  background: oklch(var(--wa) / 0.15);
-  color: oklch(var(--wa));
-}
-
-.recall-score.low {
-  background: oklch(var(--er) / 0.15);
-  color: oklch(var(--er));
-}
-
-.recall-agent-tag,
-.recall-topic-tag,
-.recall-importance {
-  font-size: 0.68rem;
-  padding: 2px 7px;
-  border-radius: 0.3rem;
-  font-weight: 600;
-}
-
-.recall-agent-tag {
-  background: oklch(var(--a) / 0.12);
-  color: oklch(var(--a));
-}
-
-.recall-topic-tag {
-  background: oklch(var(--b3));
-  color: oklch(var(--bc) / 0.6);
-}
-
-.recall-importance {
-  background: oklch(var(--wa) / 0.12);
-  color: oklch(var(--wa));
-}
-
-.recall-item-content {
-  font-size: 0.88rem;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.recall-summary-text {
-  background: oklch(var(--b3) / 0.4);
-  padding: 0.6rem 0.85rem;
-  border-radius: 0.5rem;
-  border-left: 3px solid oklch(var(--p));
-}
-
-.recall-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin-top: 0.3rem;
-}
-
-.recall-tag {
-  font-size: 0.65rem;
-  padding: 2px 6px;
-  border-radius: 0.2rem;
-  background: oklch(var(--in) / 0.1);
-  color: oklch(var(--bc) / 0.6);
-}
-
-.recall-context-box {
-  position: relative;
-}
-
-.recall-copy-btn {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  font-size: 0.75rem;
-  z-index: 2;
-}
-
-.recall-context-pre,
-.recall-profile-json {
-  font-size: 0.82rem;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  max-height: 500px;
-  overflow-y: auto;
-  background: oklch(var(--b3) / 0.4);
-  padding: 1rem;
-  border-radius: 0.5rem;
-}
-
-.recall-profile-json {
-  color: oklch(var(--p));
-}
-
-.recall-json-pre {
-  font-size: 0.78rem;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  color: oklch(var(--p));
-}
-
-/* === EMPTY STATES === */
-.empty-state {
-  text-align: center;
-  padding: 2rem 1rem;
-  color: oklch(var(--bc) / 0.4);
-  font-size: 0.88rem;
-}
-
-.empty-state .icon {
-  display: block;
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
 }
 
 /* === RESPONSIVE === */
