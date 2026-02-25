@@ -27,11 +27,10 @@ Backed by a self-hosted memory server with **PostgreSQL**, **Qdrant** vector sea
 ## Setup
 
 ```bash
-openclaw plugins install @memolo/openclaw-plugin
+openclaw plugins install @openclaw/memolo
 ```
 
 Then configure in your OpenClaw settings:
-
 ```json
 {
   "memolo": {
