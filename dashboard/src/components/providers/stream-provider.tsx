@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { API_URL, SSE_URL } from "@/lib/api";
 import { useSWRConfig } from "swr";
+import { toast } from "sonner";
 
 export type LogLevel = "info" | "warn" | "error" | "debug" | "system";
 
@@ -119,6 +120,7 @@ export function StreamProvider({ children }: { children: React.ReactNode }) {
                             break;
                         case 'exchange:new':
                             addActivity('💬', 'Exchange Stored', `${msg.data.agentId}: ${msg.data.userMessage?.substring(0, 60)}...`, 'memory', msg.data.timestamp);
+                            toast('💬 New Exchange', { description: `${msg.data.agentId}: ${msg.data.userMessage?.substring(0, 80) || ''}` });
                             // Instant revalidation: refresh exchanges and conversations
                             mutate((key: string) => typeof key === 'string' && (key.includes('/exchanges') || key.includes('/conversations')), undefined, { revalidate: true });
                             break;
@@ -126,12 +128,14 @@ export function StreamProvider({ children }: { children: React.ReactNode }) {
                             const actorLabel = msg.data.actorId === 'assistant' ? 'Agent' : 'User';
                             const typeIcon = msg.data.type === 'fact' ? '✅' : '🔮';
                             addActivity(typeIcon, `${actorLabel} ${msg.data.type} Extracted`, msg.data.content?.substring(0, 80), 'extractor', msg.data.timestamp);
+                            toast.success(`${typeIcon} Memory Extracted`, { description: msg.data.content?.substring(0, 100) || '' });
                             // Instant revalidation: refresh memories list
                             mutate((key: string) => typeof key === 'string' && key.includes('/memories'), undefined, { revalidate: true });
                             break;
                         }
                         case 'agent:new':
                             addActivity('🤖', 'Agent Registered', `${msg.data.name} (${msg.data.agentId})`, 'system', msg.data.timestamp);
+                            toast.info(`🤖 Agent Registered`, { description: `${msg.data.name} (${msg.data.agentId})` });
                             // Instant revalidation: refresh agents list
                             mutate((key: string) => typeof key === 'string' && key.includes('/agents'), undefined, { revalidate: true });
                             break;
