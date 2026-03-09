@@ -42,3 +42,4 @@ coverage/
 .gemini/
 .agent/
 _agent/
+AGENTS.md
