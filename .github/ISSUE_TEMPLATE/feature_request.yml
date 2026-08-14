@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest an idea for Memolo
+title: "[feat]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem you're trying to solve — not just the solution — so the design can be discussed in the thread.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of Memolo would this affect?
+      options:
+        - Server (API)
+        - Dashboard
+        - SDK (Node.js)
+        - OpenClaw plugin
+        - Docs / scripts
+        - Multiple / not sure
+      default: 5
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you solving?
+      description: The situation that doesn't work well today, or the use case you have.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you'd like to see, roughly — API shape, UI, config option. As concrete as you can.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Workarounds or other approaches you tried. Knowing what didn't work helps too.
