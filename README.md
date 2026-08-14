@@ -430,3 +430,8 @@ This downloads the plugin, installs dependencies, and registers it with OpenClaw
 - 📋 [SETUP.md](SETUP.md) — Detailed setup & troubleshooting
 - 📦 [SDK README](sdk/README.md) — Node.js client SDK
 - 🔌 [Plugin README](plugin/README.md) — OpenClaw plugin integration docs
+
+## Support & Reporting Issues
+
+- 🐞 Found a bug or have a question? [Open an issue](https://github.com/tysonnbt/memolo/issues/new/choose) — the templates ask for your version (`git log -1 --format=%h`) and server logs (`docker compose logs memolo`).
+- 🤝 Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md) for issue guidelines, commit conventions, and the PR workflow.

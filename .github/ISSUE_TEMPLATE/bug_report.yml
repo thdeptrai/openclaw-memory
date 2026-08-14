@@ -1,0 +1,72 @@
+name: Bug report
+description: Something isn't working as expected
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please fill in what you can — a complete report saves us a round of questions.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of Memolo is affected?
+      options:
+        - Server (API)
+        - Dashboard
+        - SDK (Node.js)
+        - OpenClaw plugin
+        - Docker / setup
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Run `git log -1 --format=%h` in your Memolo folder (or paste the release tag you're on)
+      placeholder: "e.g. aeb1ee3"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what actually happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest path that triggers it, including the exact API call or UI action.
+      placeholder: |
+        1. Start with `docker compose up -d`
+        2. POST /api/memory/store with body ...
+        3. Query recall with ...
+        4. See ...
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Docker version, Ollama embedding model, MiniMax model.
+      placeholder: |
+        - OS: Windows 11 / Ubuntu 22.04 / macOS
+        - Docker: 27.x (or running without Docker?)
+        - Ollama model: qwen3-embedding:8b
+        - MiniMax model: MiniMax-M2.5
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant lines from `docker compose logs memolo` (or the server console). No logs means we'll ask for them.
+      render: shell
